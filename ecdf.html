@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>经验分布函数与总体分布函数 · 数理统计</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #14406b;
+      --red: #a32e2e;
+      --ink: #233343;
+      --muted: #586778;
+      --line: #d6dfe7;
+      --wash: #f3f6f9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #fff;
+      color: var(--ink);
+      font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 17px;
+      line-height: 1.6;
+    }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 36px 24px; }
+    header { border-bottom: 2px solid var(--blue); padding-bottom: 16px; }
+    .site-nav { margin: 0 0 12px; font-size: 14px; }
+    .site-nav a { color: var(--blue); text-underline-offset: 4px; }
+    h1 { margin: 0; color: var(--blue); font-size: clamp(24px, 3vw, 34px); line-height: 1.35; font-weight: 600; }
+    .intro { margin: 10px 0 0; color: var(--muted); }
+    form { display: flex; align-items: end; flex-wrap: wrap; gap: 16px 22px; margin: 22px 0 8px; }
+    label { display: flex; flex-direction: column; gap: 6px; font-size: 15px; font-weight: 500; }
+    select, input, button { font: inherit; font-size: 17px; min-height: 46px; border-radius: 5px; }
+    select, input { border: 1px solid #adbcc9; background: #fff; color: var(--ink); padding: 9px 12px; }
+    select { width: 256px; }
+    input { width: 180px; font-variant-numeric: tabular-nums; }
+    button { border: 1px solid var(--blue); padding: 9px 22px; background: var(--blue); color: #fff; cursor: pointer; font-weight: 500; }
+    button:hover { background: #1c527f; }
+    button:active { transform: translateY(1px); }
+    :focus-visible { outline: 3px solid #cf8b17; outline-offset: 3px; }
+    #message { margin: 0; min-height: 28px; font-size: 14px; color: var(--muted); }
+    #error { margin: 0; color: var(--red); font-size: 15px; }
+    [hidden] { display: none !important; }
+    .chart-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 22px; margin-top: 16px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 16px; }
+    .legend span { display: inline-flex; align-items: center; gap: 9px; }
+    .legend svg { width: 31px; height: 17px; flex: none; overflow: visible; }
+    #sample-status { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+    figure { margin: 0; }
+    #plot-host { height: clamp(350px, 54vh, 540px); width: 100%; margin-top: 6px; }
+    #plot { width: 100%; height: 100%; display: block; touch-action: pan-y; }
+    #plot text { fill: var(--muted); font-family: inherit; font-size: 14px; }
+    #plot .axis-title { fill: var(--ink); font-size: 15px; }
+    #plot .grid { stroke: #e6ebf0; stroke-width: 1; }
+    #plot .axis { stroke: #9aaaba; stroke-width: 1; }
+    #plot .theory { stroke: var(--blue); stroke-width: 2.8; fill: none; }
+    #plot .empirical { stroke: var(--red); stroke-width: 2.3; fill: none; }
+    #plot .jump { stroke: var(--red); stroke-width: 1.25; stroke-dasharray: 3 3; opacity: .65; fill: none; }
+    #plot .rug { stroke: var(--red); stroke-width: 1; opacity: .32; fill: none; }
+    #plot .guide { stroke: #738697; stroke-width: 1; stroke-dasharray: 4 4; }
+    #plot .theory-dot { fill: var(--blue); stroke: #fff; stroke-width: 2; }
+    #plot .empirical-dot { fill: var(--red); stroke: #fff; stroke-width: 2; }
+    .probe { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 24px; padding: 12px 16px; background: var(--wash); font-size: 16px; font-variant-numeric: tabular-nums; }
+    .probe strong { font-weight: 600; }
+    .theory-text { color: var(--blue); }
+    .empirical-text { color: var(--red); }
+    figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 18px; margin: 9px 0 0; font-size: 13px; color: var(--muted); }
+    .notes { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 7px 24px; margin-top: 19px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .definition { margin: 0; font-size: 17px; }
+    .distance { margin: 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+    #distance { font-size: 20px; color: var(--ink); font-weight: 600; }
+    .hint { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+    @media (max-width: 620px) {
+      main { padding: 20px 16px; }
+      form { gap: 12px; }
+      label { flex: 1 1 140px; }
+      label:first-child { flex-basis: 100%; }
+      select, input { width: 100%; min-width: 0; }
+      button { flex: 1 1 100%; }
+      #plot-host { height: 350px; }
+      .legend { font-size: 14px; gap: 8px 15px; }
+      .probe { font-size: 14px; gap: 4px 14px; padding: 10px 12px; }
+      #plot text { font-size: 13px; }
+    }
+    @media print {
+      main { padding: 0; }
+      .site-nav, form, #message, #error { display: none; }
+      #plot-host { height: 450px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
+    <h1>经验分布函数与总体分布函数</h1>
+    <p class="intro">从总体中抽取一组样本，比较样本比例与理论概率。</p>
+  </header>
+
+  <form id="controls" novalidate>
+    <label for="distribution">总体分布
+      <select id="distribution" name="distribution">
+        <option value="normal">标准正态分布 N(0, 1)</option>
+        <option value="uniform">均匀分布 U[−1, 1]</option>
+      </select>
+    </label>
+    <label for="sample-size">样本量 n
+      <input id="sample-size" name="sample-size" type="number" min="1" max="10000" step="1" value="50" required aria-describedby="message error">
+    </label>
+    <button type="submit">生成随机样本</button>
+  </form>
+  <p id="message">每次点击生成一组新的独立同分布样本。n 可取 1 至 10000。</p>
+  <p id="error" role="alert" hidden></p>
+
+  <div class="chart-heading">
+    <div class="legend" aria-label="图例">
+      <span><svg viewBox="0 0 31 17" aria-hidden="true"><path d="M1 14 C10 14 13 3 30 3" fill="none" stroke="#14406b" stroke-width="2.8"/></svg>总体分布 F(x)</span>
+      <span><svg viewBox="0 0 31 17" aria-hidden="true"><path d="M1 14 H11 V9 H21 V3 H30" fill="none" stroke="#a32e2e" stroke-width="2.3"/></svg>经验分布 Fₙ(x)</span>
+    </div>
+    <output id="sample-status" aria-live="polite"></output>
+  </div>
+
+  <figure>
+    <div id="plot-host">
+      <svg id="plot" role="img" tabindex="0" aria-labelledby="plot-title plot-description">
+        <title id="plot-title">总体分布函数和经验分布函数</title>
+        <desc id="plot-description">横轴为观测值 x，纵轴为累计概率。蓝线是总体分布函数，红色阶梯线是经验分布函数。移动鼠标或点触图形可以查看数值，键盘左右方向键也可以移动读数位置。</desc>
+      </svg>
+    </div>
+    <div class="probe" id="probe">
+      <span>x = <strong id="probe-x">0.000</strong></span>
+      <span>不超过 x：<strong id="probe-count">—</strong></span>
+      <span class="empirical-text">Fₙ(x) = <strong id="probe-empirical">—</strong></span>
+      <span class="theory-text">F(x) = <strong id="probe-theory">0.5000</strong></span>
+    </div>
+    <figcaption>
+      <span>移动鼠标或点触图形查看读数；也可选中图形后使用左右方向键。</span>
+      <span>轴下短线标记样本位置。阶梯在样本值处取上端点，保持右连续。</span>
+    </figcaption>
+  </figure>
+
+  <div class="notes">
+    <p class="definition">Fₙ(x) = 不超过 x 的样本数 / n</p>
+    <p class="distance">最大偏差 Dₙ = sup<sub>x</sub> |Fₙ(x) − F(x)| = <output id="distance">—</output></p>
+  </div>
+  <p class="hint">可依次尝试 n = 10、100、1000。样本量较大时通常更贴近总体分布；每次重新抽样，偏差仍会波动。</p>
+  <noscript><p>请启用浏览器的 JavaScript，以生成随机样本并绘图。</p></noscript>
+</main>
+
+<script>
+"use strict";
+
+// 单文件离线演示。这里的 X_i 相互独立且服从选定的总体分布。
+const SVG_NS = "http://www.w3.org/2000/svg";
+const MAX_N = 10000;
+const form = document.getElementById("controls");
+const distributionInput = document.getElementById("distribution");
+const sizeInput = document.getElementById("sample-size");
+const plot = document.getElementById("plot");
+const plotHost = document.getElementById("plot-host");
+const ecdfState = { distribution: "normal", sorted: [], draw: 0, probeX: 0, geometry: null };
+
+// Abramowitz–Stegun 7.1.26 的 erf 近似；先计算尾部以减少负半轴的消减误差。
+function normalCDF(x) {
+  if (x === 0) return 0.5;
+  const z = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * z);
+  const tail = 0.5 * t * (0.254829592 + t * (-0.284496736 + t *
+    (1.421413741 + t * (-1.453152027 + t * 1.061405429)))) * Math.exp(-z * z);
+  return x < 0 ? tail : 1 - tail;
+}
+
+function uniformCDF(x) { return x <= -1 ? 0 : x >= 1 ? 1 : (x + 1) / 2; }
+function currentCDF(x) { return ecdfState.distribution === "normal" ? normalCDF(x) : uniformCDF(x); }
+function distributionName() { return ecdfState.distribution === "normal" ? "N(0, 1)" : "U[−1, 1]"; }
+
+function randomSample(n, distribution, rng = Math.random) {
+  const sample = [];
+  if (distribution === "uniform") {
+    for (let i = 0; i < n; i++) sample.push(2 * rng() - 1);
+  } else {
+    // Box–Muller：1 - rng() 属于 (0, 1]，避免 log(0)。
+    for (let i = 0; i < n; i += 2) {
+      const radius = Math.sqrt(-2 * Math.log(1 - rng()));
+      const angle = 2 * Math.PI * rng();
+      sample.push(radius * Math.cos(angle));
+      if (i + 1 < n) sample.push(radius * Math.sin(angle));
+    }
+  }
+  return sample.sort((a, b) => a - b);
+}
+
+// upper_bound 计入所有等于 x 的样本，正确处理重复值和右连续性。
+function countAtMost(sorted, x) {
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (sorted[mid] <= x) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+function empiricalCDF(sorted, x) { return sorted.length ? countAtMost(sorted, x) / sorted.length : NaN; }
+
+// 对连续总体，sup 的候选值包括每个跳跃的右端值和左极限。
+// 直接按顺序统计量计算，无须靠画图网格近似，也能处理重复观测值。
+function maximumDistance(sorted, cdf) {
+  if (!sorted.length) return NaN;
+  let distance = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const f = cdf(sorted[i]);
+    distance = Math.max(distance, (i + 1) / sorted.length - f, f - i / sorted.length);
+  }
+  return distance;
+}
+
+function element(name, attributes = {}, text = "") {
+  const node = document.createElementNS(SVG_NS, name);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+  if (text) node.textContent = text;
+  return node;
+}
+
+function domain() {
+  if (ecdfState.distribution === "uniform") return [-1.22, 1.22];
+  const sorted = ecdfState.sorted;
+  return [Math.min(-3.5, (sorted[0] ?? 0) - 0.25), Math.max(3.5, (sorted.at(-1) ?? 0) + 0.25)];
+}
+
+function ticks(min, max, count) {
+  const raw = (max - min) / count;
+  const base = 10 ** Math.floor(Math.log10(raw));
+  const ratio = raw / base;
+  const step = (ratio >= 5 ? 5 : ratio >= 2 ? 2 : 1) * base;
+  const values = [];
+  for (let i = Math.ceil(min / step); i <= Math.floor(max / step); i++) values.push(i * step);
+  return values;
+}
+
+function drawPlot() {
+  const width = Math.max(250, plotHost.clientWidth);
+  const height = plotHost.clientHeight;
+  const left = width < 600 ? 51 : 66, right = width - 18, top = 34, bottom = height - 70;
+  const [min, max] = domain();
+  const px = x => left + (x - min) / (max - min) * (right - left);
+  const py = y => bottom - y * (bottom - top);
+  ecdfState.geometry = { width, height, left, right, top, bottom, min, max, px, py };
+  ecdfState.probeX = Math.max(min, Math.min(max, ecdfState.probeX));
+  plot.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  plot.querySelectorAll(":scope > :not(title):not(desc)").forEach(node => node.remove());
+
+  const defs = element("defs");
+  const clip = element("clipPath", { id: "plot-clip" });
+  clip.append(element("rect", { x: left - 4, y: top - 4, width: right - left + 8, height: bottom - top + 8 }));
+  defs.append(clip);
+  plot.append(defs);
+
+  for (const y of [0, 0.25, 0.5, 0.75, 1]) {
+    plot.append(element("line", { x1: left, y1: py(y), x2: right, y2: py(y), class: "grid" }));
+    plot.append(element("text", { x: left - 12, y: py(y) + 5, "text-anchor": "end" }, y.toFixed(2)));
+  }
+  const xTicks = ecdfState.distribution === "uniform"
+    ? (width < 600 ? [-1, 0, 1] : [-1, -0.5, 0, 0.5, 1])
+    : ticks(min, max, width < 600 ? 4 : 7);
+  for (const x of xTicks) {
+    plot.append(element("line", { x1: px(x), y1: top, x2: px(x), y2: bottom, class: "grid" }));
+    plot.append(element("text", { x: px(x), y: bottom + 35, "text-anchor": "middle" }, String(Number(x.toPrecision(6))).replace("-", "−")));
+  }
+  plot.append(element("path", { d: `M${left} ${top} V${bottom} H${right}`, class: "axis", fill: "none" }));
+  plot.append(element("text", { x: left, y: 19, class: "axis-title" }, "累计概率"));
+  plot.append(element("text", { x: (left + right) / 2, y: height - 8, class: "axis-title", "text-anchor": "middle" }, "观测值 x"));
+
+  const curves = element("g", { "clip-path": "url(#plot-clip)" });
+  const theoryX = ecdfState.distribution === "uniform"
+    ? [min, -1, 1, max]
+    : Array.from({ length: 601 }, (_, i) => min + (max - min) * i / 600);
+  const theoryPath = theoryX.map((x, i) => `${i ? "L" : "M"}${px(x)} ${py(currentCDF(x))}`).join(" ");
+  curves.append(element("path", { id: "theory-curve", d: theoryPath, class: "theory" }));
+
+  const sorted = ecdfState.sorted, n = sorted.length;
+  if (n) {
+    let horizontal = `M${px(min)} ${py(0)}`, jumps = "", rug = "";
+    const markers = element("g", { id: "step-endpoints" });
+    for (let i = 0; i < n;) {
+      const value = sorted[i];
+      let j = i + 1;
+      while (j < n && sorted[j] === value) j++;
+      const x = px(value), low = py(i / n), high = py(j / n);
+      horizontal += ` H${x} M${x} ${high}`;
+      jumps += `M${x} ${low} V${high} `;
+      rug += `M${x} ${bottom + 7} v8 `;
+      if (n <= 60) {
+        markers.append(element("circle", { cx: x, cy: low, r: 3, fill: "#fff", stroke: "#a32e2e", "stroke-width": 1.4 }));
+        markers.append(element("circle", { cx: x, cy: high, r: 3, fill: "#a32e2e" }));
+      }
+      i = j;
+    }
+    horizontal += ` H${px(max)}`;
+    curves.append(element("path", { d: jumps, class: "jump" }));
+    curves.append(element("path", { id: "empirical-curve", d: horizontal, class: "empirical" }));
+    curves.append(markers);
+    plot.append(element("path", { d: rug, class: "rug", id: "sample-rug" }));
+  }
+  plot.append(curves);
+  const cursor = element("g", { id: "cursor", "pointer-events": "none" });
+  cursor.append(element("line", { id: "cursor-guide", y1: top, y2: bottom, class: "guide" }));
+  cursor.append(element("circle", { id: "cursor-theory", r: 5, class: "theory-dot" }));
+  cursor.append(element("circle", { id: "cursor-empirical", r: 5, class: "empirical-dot", visibility: n ? "visible" : "hidden" }));
+  plot.append(cursor);
+  updateProbe();
+}
+
+function updateProbe() {
+  const g = ecdfState.geometry;
+  if (!g) return;
+  const x = ecdfState.probeX, n = ecdfState.sorted.length;
+  const count = countAtMost(ecdfState.sorted, x), theory = currentCDF(x);
+  const at = g.px(x);
+  document.getElementById("cursor-guide").setAttribute("x1", at);
+  document.getElementById("cursor-guide").setAttribute("x2", at);
+  const theoryDot = document.getElementById("cursor-theory");
+  theoryDot.setAttribute("cx", at); theoryDot.setAttribute("cy", g.py(theory));
+  const empiricalDot = document.getElementById("cursor-empirical");
+  empiricalDot.setAttribute("cx", at); empiricalDot.setAttribute("cy", g.py(n ? count / n : 0));
+  document.getElementById("probe-x").textContent = x.toFixed(3).replace("-", "−");
+  document.getElementById("probe-count").textContent = n ? `${count} / ${n}` : "—";
+  document.getElementById("probe-empirical").textContent = n ? (count / n).toFixed(4) : "—";
+  document.getElementById("probe-theory").textContent = theory.toFixed(4);
+}
+
+function updateSummary() {
+  const n = ecdfState.sorted.length;
+  document.getElementById("sample-status").textContent = n
+    ? `${distributionName()} · n = ${n} · 第 ${ecdfState.draw} 次抽样`
+    : `${distributionName()} · 等待生成样本`;
+  document.getElementById("distance").textContent = n ? maximumDistance(ecdfState.sorted, currentCDF).toFixed(4) : "—";
+  document.getElementById("plot-description").textContent =
+    `总体为 ${distributionName()}，${n ? `样本量为 ${n}` : "尚未抽样"}。横轴为观测值 x，纵轴为累计概率。蓝线是总体分布函数，红色阶梯线是经验分布函数。移动鼠标、点触或使用左右方向键可查看同一 x 处的两个函数值。`;
+}
+
+function generateSample(event) {
+  if (event) event.preventDefault();
+  const n = sizeInput.valueAsNumber;
+  const error = document.getElementById("error");
+  if (!Number.isInteger(n) || n < 1 || n > MAX_N) {
+    error.textContent = "请输入 1 至 10000 之间的整数样本量。";
+    error.hidden = false;
+    sizeInput.setAttribute("aria-invalid", "true");
+    sizeInput.focus();
+    return;
+  }
+  error.hidden = true;
+  sizeInput.removeAttribute("aria-invalid");
+  ecdfState.distribution = distributionInput.value;
+  ecdfState.sorted = randomSample(n, ecdfState.distribution);
+  ecdfState.draw++;
+  document.getElementById("message").textContent = "每次点击生成一组新的独立同分布样本。n 可取 1 至 10000。";
+  updateSummary();
+  drawPlot();
+}
+
+function parametersChanged() {
+  ecdfState.distribution = distributionInput.value;
+  ecdfState.sorted = [];
+  ecdfState.probeX = 0;
+  document.getElementById("error").hidden = true;
+  sizeInput.removeAttribute("aria-invalid");
+  document.getElementById("message").textContent = "参数已修改，点击“生成随机样本”绘制对应的经验分布函数。";
+  updateSummary();
+  drawPlot();
+}
+
+function pointAt(event) {
+  const g = ecdfState.geometry;
+  const bounds = plot.getBoundingClientRect();
+  const coordinate = (event.clientX - bounds.left) * g.width / bounds.width;
+  ecdfState.probeX = g.min + (Math.max(g.left, Math.min(g.right, coordinate)) - g.left) / (g.right - g.left) * (g.max - g.min);
+  updateProbe();
+}
+
+form.addEventListener("submit", generateSample);
+distributionInput.addEventListener("change", parametersChanged);
+sizeInput.addEventListener("input", parametersChanged);
+plot.addEventListener("pointermove", pointAt);
+plot.addEventListener("pointerdown", pointAt);
+plot.addEventListener("keydown", event => {
+  const g = ecdfState.geometry;
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  const step = (g.max - g.min) / 100;
+  if (event.key === "Home") ecdfState.probeX = g.min;
+  else if (event.key === "End") ecdfState.probeX = g.max;
+  else ecdfState.probeX += event.key === "ArrowLeft" ? -step : step;
+  ecdfState.probeX = Math.max(g.min, Math.min(g.max, ecdfState.probeX));
+  updateProbe();
+});
+new ResizeObserver(drawPlot).observe(plotHost);
+generateSample();
+</script>
+</body>
+</html>
