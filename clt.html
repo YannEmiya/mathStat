@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>大样本正态近似</title>
+<style>
+:root{--blue:#14406b;--red:#a32e2e;--ink:#223346;--muted:#596a78;--line:#dbe2e8;--population:#526b82}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:16px/1.6 "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1320px;margin:auto;padding:24px 28px}h1{font-size:28px;line-height:1.3;color:var(--blue);margin:0 0 18px}
+.controls{display:flex;gap:20px;align-items:end;flex-wrap:wrap;padding:16px 18px;background:#f4f7fa;border:1px solid var(--line);border-radius:6px}.field{display:grid;gap:7px}.field>label{font-size:14px;font-weight:600}.input-pair{display:flex;align-items:center;gap:10px}select,input[type=number],button{font:inherit;min-height:40px;border:1px solid #aebcc9;border-radius:4px;background:#fff;color:var(--ink);padding:6px 9px}select{max-width:100%;width:218px}input[type=number]{width:98px;font-variant-numeric:tabular-nums}input[type=range]{width:142px;accent-color:var(--blue);cursor:pointer}button{background:var(--blue);border-color:var(--blue);color:#fff;cursor:pointer;padding:6px 16px;margin-left:auto}button:disabled{opacity:.65;cursor:wait}:focus-visible{outline:3px solid #498dcc;outline-offset:3px}
+.stat-options{border:0;margin:16px 0 0;padding:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.stat-options legend{float:left;margin-right:6px;font-size:14px;padding:0}.stat-option{display:flex;align-items:center;gap:9px;padding:7px 14px;border:1px solid #bcc8d3;border-radius:5px;cursor:pointer;min-height:61px}.stat-option:has(input:checked){border-color:var(--blue);background:#f1f6fa;box-shadow:inset 0 0 0 1px var(--blue)}input[type=radio]{width:17px;height:17px;accent-color:var(--blue);margin:0}.stat-note{font-size:14px;color:var(--muted);margin-left:5px}math{font:23px "STIX Two Math","Cambria Math",serif}
+.status{color:var(--muted);font-size:14px;min-height:25px;margin:7px 0 10px}.status.error{color:var(--red)}.plots{display:grid;grid-template-columns:2fr 3fr;gap:30px}.plot{min-width:0}.plot+ .plot{border-left:1px solid var(--line);padding-left:28px}.plot-head h2{font-size:21px;color:var(--blue);margin:0 0 3px}.plot-head p{font-size:15px;color:var(--muted);margin:0}.legend{display:flex;gap:6px 15px;flex-wrap:wrap;align-content:center;font-size:14px;min-height:48px;padding:7px 0}.legend-item{display:flex;align-items:center;gap:7px}.bar-swatch{width:20px;height:12px;background:#a32e2e38;border:1px solid #a32e2e66}.line-swatch{width:23px;border-top:3px solid var(--blue)}.line-swatch.empirical{border-color:var(--red)}.line-swatch.population{border-color:var(--population)}
+.line-swatch.normal{border-top-style:dashed}
+.chart{width:100%;height:350px;display:block}.chart text{font-family:inherit;fill:var(--muted)}.plot-foot{font-size:14px;color:var(--muted);margin:8px 0 0;min-height:23px}.context{font-size:15px;color:var(--blue);margin:15px 0 0;padding-top:13px;border-top:1px solid var(--line)}
+@media(max-width:1000px){.controls{gap:14px}.input-pair input[type=range]{width:110px}.plots{grid-template-columns:1fr 1fr;gap:22px}.plot+.plot{padding-left:20px}.legend{min-height:70px}.stat-note{margin-left:0}.stat-options legend{float:none}}
+@media(max-width:760px){main{padding:20px 16px}h1{font-size:25px}.controls{padding:13px;align-items:end}.input-pair input[type=range]{width:125px}.field{max-width:100%}.plots{grid-template-columns:1fr;gap:26px}.plot+.plot{border-left:0;border-top:1px solid var(--line);padding:20px 0 0}.chart{height:320px}.legend{min-height:40px}.stat-options{gap:8px}.stat-options legend{width:100%;margin:0}.stat-option{padding:7px 10px}.stat-note{font-size:13px}.stat-options>.stat-note{width:100%}button{margin-left:0}}
+.site-nav{font-size:14px;margin:0 0 12px}.site-nav a{color:var(--blue);text-underline-offset:4px}
+</style>
+</head>
+<body>
+<main>
+<nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
+<h1>大样本正态近似</h1>
+<section class="controls" aria-label="抽样设置">
+<div class="field"><label for="model">总体分布</label><select id="model"><option value="exponential">指数分布 Exp(1)</option><option value="uniform">均匀分布 U[−1, 1]</option><option value="normal">正态分布 N(0, 1)</option></select></div>
+<div class="field"><label for="sample-size">每组样本量 n</label><div class="input-pair"><input id="n-slider" type="range" min="2" max="1000" step="1" value="5" aria-label="调节每组样本量 n"><input id="sample-size" type="number" min="2" max="1000" step="1" value="5" required></div></div>
+<div class="field"><label for="repeats">重复抽样次数 B</label><div class="input-pair"><input id="b-slider" type="range" min="100" max="10000" step="1" value="5000" aria-label="调节重复抽样次数 B"><input id="repeats" type="number" min="100" max="10000" step="1" value="5000" required></div></div>
+<button id="run" type="button">重新抽样</button>
+</section>
+<fieldset class="stat-options">
+<legend>右图统计量</legend>
+<label class="stat-option"><input id="stat-u" type="radio" name="statistic" value="u" checked><math aria-label="U n 等于样本均值减 mu，除以 sigma 除以根号 n"><msub><mi>U</mi><mi>n</mi></msub><mo>=</mo><mfrac><mrow><mover><mi>X</mi><mo>¯</mo></mover><mo>−</mo><mi>μ</mi></mrow><mrow><mi>σ</mi><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac></math><span class="stat-note">σ 已知</span></label>
+<label class="stat-option"><input id="stat-t" type="radio" name="statistic" value="t"><math aria-label="T n 等于样本均值减 mu，除以 S 除以根号 n"><msub><mi>T</mi><mi>n</mi></msub><mo>=</mo><mfrac><mrow><mover><mi>X</mi><mo>¯</mo></mover><mo>−</mo><mi>μ</mi></mrow><mrow><mi>S</mi><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac></math><span class="stat-note">用 S 替代 σ</span></label>
+<span class="stat-note">切换时沿用同一批样本</span>
+</fieldset>
+<p id="status" class="status" role="status" aria-live="polite"></p>
+<section class="plots" aria-label="左图为总体密度，右图为重复抽样得到的统计量分布">
+<article class="plot">
+<div class="plot-head"><h2>总体分布：X</h2><p>每个观测值都从这个总体中抽取</p></div>
+<div class="legend"><span class="legend-item"><i class="line-swatch population" aria-hidden="true"></i><span id="population-legend">Exp(1) 的理论密度</span></span></div>
+<svg id="population-chart" class="chart" role="img" aria-label="总体 X 的理论概率密度"></svg>
+<p id="population-parameters" class="plot-foot"></p>
+</article>
+<article class="plot">
+<div class="plot-head"><h2 id="stat-title">抽样分布：Uₙ</h2><p id="sampling-description">每组 5 个观测值，计算 1 个 Uₙ，重复 5000 组</p></div>
+<div class="legend">
+<span class="legend-item"><i class="bar-swatch" aria-hidden="true"></i>直方图</span>
+<span class="legend-item" title="由当前模拟值作核密度估计"><i class="line-swatch empirical" aria-hidden="true"></i>经验密度曲线</span>
+<span class="legend-item"><i class="line-swatch normal" aria-hidden="true"></i>标准正态 N(0, 1)</span>
+</div>
+<svg id="stat-chart" class="chart" role="img" aria-label="统计量的直方图、经验密度与标准正态密度"></svg>
+<p id="sample-info" class="plot-foot"></p>
+</article>
+</section>
+<p id="context" class="context"></p>
+</main>
+<script>
+'use strict';
+// Offline simulation, inspired by refs/clt_demo.html.
+// n observations -> one statistic. Repeat B independent groups.
+// U and T always use the same underlying groups; the population plot is analytic.
+const normalPDF=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+const MODELS={
+  exponential:{mu:1,sigma:1,name:'Exp(1)',parameters:'μ = 1，σ² = 1',domain:[0,6],ticks:[0,1,2,3,4,5,6],yMax:1.2,pdf:x=>x<0?0:Math.exp(-x)},
+  uniform:{mu:0,sigma:1/Math.sqrt(3),name:'U[−1, 1]',parameters:'μ = 0，σ² = 1/3',domain:[-1.5,1.5],ticks:[-1.5,-1,-.5,0,.5,1,1.5],yMax:.6,pdf:x=>Math.abs(x)<=1?.5:0},
+  normal:{mu:0,sigma:1,name:'N(0, 1)',parameters:'μ = 0，σ² = 1',domain:[-4,4],ticks:[-4,-2,0,2,4],yMax:.5,pdf:normalPDF}
+};
+const XMIN=-4,XMAX=4,BIN=.2;
+const $=id=>document.getElementById(id);
+const state={epoch:0,busy:false,settings:null,groups:[],mode:'u'};
+const analysisCache=new WeakMap();
+function sampleGroup(n,model,rng=Math.random){
+  // Welford's algorithm: S² = sum((Xi - Xbar)²)/(n - 1).
+  let count=0,mean=0,m2=0;
+  function add(x){count++;const delta=x-mean;mean+=delta/count;m2+=delta*(x-mean);}
+  while(count<n){
+    if(model==='normal'){
+      const radius=Math.sqrt(-2*Math.log1p(-rng())),angle=2*Math.PI*rng();
+      add(radius*Math.cos(angle));
+      if(count<n)add(radius*Math.sin(angle));
+    }else add(model==='uniform'?2*rng()-1:-Math.log1p(-rng()));
+  }
+  const s=Math.sqrt(Math.max(0,m2/(n-1))),params=MODELS[model];
+  const centered=(mean-params.mu)*Math.sqrt(n);
+  return {mean,s,u:centered/params.sigma,t:s>0?centered/s:null};
+}
+function summarize(groups,mode){
+  const bins=Array(Math.round((XMAX-XMIN)/BIN)).fill(0),values=[];
+  let left=0,right=0,invalid=0;
+  for(const group of groups){
+    const value=group[mode];
+    if(value===null||!Number.isFinite(value)){invalid++;continue;}
+    values.push(value);
+    if(value<XMIN)left++;
+    else if(value>XMAX)right++;
+    else bins[Math.min(bins.length-1,Math.floor((value-XMIN)/BIN))]++;
+  }
+  // Out-of-view values remain in the denominator. S=0 is reported separately.
+  const valid=values.length;
+  return {bins,values,valid,left,right,invalid,density:bins.map(k=>valid?k/(valid*BIN):0)};
+}
+function quantile(sorted,p){
+  const i=(sorted.length-1)*p,lo=Math.floor(i);
+  return sorted[lo]+(sorted[Math.min(lo+1,sorted.length-1)]-sorted[lo])*(i-lo);
+}
+function kernelDensity(values){
+  if(values.length<2)return {points:[],bandwidth:null};
+  const sorted=[...values].sort((a,b)=>a-b);
+  let mean=0,m2=0;
+  sorted.forEach((x,i)=>{const delta=x-mean;mean+=delta/(i+1);m2+=delta*(x-mean);});
+  const sd=Math.sqrt(m2/(sorted.length-1)),iqr=quantile(sorted,.75)-quantile(sorted,.25);
+  // Gaussian KDE with Silverman's robust rule of thumb.
+  // No fitting to the normal reference and no renormalization over the visible window.
+  const scale=Math.min(sd,iqr>0?iqr/1.34:sd);
+  const bandwidth=scale>0?.9*scale*Math.pow(sorted.length,-.2):.1;
+  const denominator=sorted.length*bandwidth*Math.sqrt(2*Math.PI),points=[];
+  let lo=0,hi=0;
+  for(let i=0;i<=240;i++){
+    const x=XMIN+(XMAX-XMIN)*i/240;
+    // Contributions beyond 8 kernel SDs are numerically negligible.
+    while(lo<sorted.length&&sorted[lo]<x-8*bandwidth)lo++;
+    while(hi<sorted.length&&sorted[hi]<=x+8*bandwidth)hi++;
+    let sum=0;
+    for(let j=lo;j<hi;j++){const z=(x-sorted[j])/bandwidth;sum+=Math.exp(-z*z/2);}
+    points.push({x,y:sum/denominator});
+  }
+  return {points,bandwidth};
+}
+function analyze(groups,mode){
+  let cached=analysisCache.get(groups);
+  if(!cached){cached={};analysisCache.set(groups,cached);}
+  if(!cached[mode]||cached[mode].count!==groups.length){
+    const summary=summarize(groups,mode);
+    cached[mode]={count:groups.length,...summary,kde:kernelDensity(summary.values)};
+  }
+  return cached[mode];
+}
+function status(message,error=false){
+  $('status').textContent=message;$('status').classList.toggle('error',error);
+}
+function cancel(){state.epoch++;state.busy=false;$('run').disabled=false;}
+function settings(){
+  const n=Number($('sample-size').value),b=Number($('repeats').value);
+  if(!Number.isInteger(n)||n<2||n>1000)throw new Error('每组样本量 n 请填 2–1000 的整数。');
+  if(!Number.isInteger(b)||b<100||b>10000)throw new Error('重复抽样次数 B 请填 100–10000 的整数。');
+  return {model:$('model').value,n,b};
+}
+function invalidate(){
+  cancel();state.groups=[];state.settings=null;
+  status('参数已改变；确认后自动抽样，也可点击“重新抽样”。');render();
+}
+function run(){
+  cancel();state.groups=[];state.settings=null;
+  let next;
+  try{next=settings();}catch(error){status(error.message,true);render();return;}
+  state.settings=next;state.busy=true;$('run').disabled=true;
+  const epoch=state.epoch;
+  status('正在生成 '+next.b.toLocaleString()+' 组样本…');render();
+  function batch(){
+    if(epoch!==state.epoch)return;
+    const started=performance.now();let steps=0;
+    while(state.groups.length<next.b&&steps<200&&performance.now()-started<14){
+      state.groups.push(sampleGroup(next.n,next.model));steps++;
+    }
+    if(state.groups.length<next.b)requestAnimationFrame(batch);
+    else{
+      state.busy=false;$('run').disabled=false;
+      status('已完成 '+next.b.toLocaleString()+' 组独立抽样。');render();
+    }
+  }
+  requestAnimationFrame(batch);
+}
+function svgNode(parent,name,attrs={},text){
+  const node=document.createElementNS('http://www.w3.org/2000/svg',name);
+  Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,String(v)));
+  if(text!==undefined)node.textContent=text;
+  parent.appendChild(node);return node;
+}
+function axes(svg,domain,yMax,ticks,xLabel,title){
+  svg.replaceChildren();
+  const box=svg.getBoundingClientRect();
+  const width=Math.max(280,box.width||560),height=box.height||350;
+  svg.setAttribute('viewBox','0 0 '+width+' '+height);
+  svg.setAttribute('aria-label',title);svgNode(svg,'title',{},title);
+  const left=46,right=width-16,top=29,bottom=height-47;
+  const sx=x=>left+(x-domain[0])/(domain[1]-domain[0])*(right-left);
+  const sy=y=>bottom-y/yMax*(bottom-top);
+  for(let i=0;i<=5;i++){
+    const value=yMax*i/5;
+    svgNode(svg,'line',{x1:left,x2:right,y1:sy(value),y2:sy(value),stroke:'#e4e9ed'});
+    svgNode(svg,'text',{x:left-8,y:sy(value)+5,'text-anchor':'end','font-size':13},value.toFixed(2));
+  }
+  svgNode(svg,'text',{x:left,y:17,'font-size':14},'概率密度');
+  svgNode(svg,'line',{x1:left,x2:right,y1:bottom,y2:bottom,stroke:'#8395a6'});
+  for(const x of ticks)svgNode(svg,'text',{x:sx(x),y:bottom+21,'text-anchor':'middle','font-size':13},String(x).replace('-','−'));
+  svgNode(svg,'text',{x:(left+right)/2,y:height-3,'text-anchor':'middle','font-size':15},xLabel);
+  return {sx,sy,left,right,top,bottom};
+}
+function drawCurve(svg,points,coords,color,css){
+  const path=points.map((p,i)=>(i?'L':'M')+coords.sx(p.x).toFixed(2)+','+coords.sy(p.y).toFixed(2)).join(' ');
+  if(points.length){
+    const attrs={d:path,fill:'none',stroke:color,'stroke-width':2.8,class:css};
+    if(css==='normal-reference')attrs['stroke-dasharray']='8 5';
+    svgNode(svg,'path',attrs);
+  }
+  return path;
+}
+function populationPoints(model){
+  // Exact straight segments at the uniform density's discontinuities: no smoothing.
+  if(model==='uniform')return [{x:-1.5,y:0},{x:-1,y:0},{x:-1,y:.5},{x:1,y:.5},{x:1,y:0},{x:1.5,y:0}];
+  const m=MODELS[model];
+  return Array.from({length:301},(_,i)=>{const x=m.domain[0]+(m.domain[1]-m.domain[0])*i/300;return {x,y:m.pdf(x)};});
+}
+function renderPopulation(){
+  const key=$('model').value,m=MODELS[key],svg=$('population-chart');
+  $('population-legend').textContent=m.name+' 的理论密度';
+  $('population-parameters').textContent=m.parameters;
+  const coords=axes(svg,m.domain,m.yMax,m.ticks,'原始观测值 X',m.name+' 总体 X 的理论概率密度');
+  const points=populationPoints(key);
+  const fillPath='M'+coords.sx(points[0].x)+','+coords.bottom+' '+
+    points.map(p=>'L'+coords.sx(p.x)+','+coords.sy(p.y)).join(' ')+
+    ' L'+coords.sx(points[points.length-1].x)+','+coords.bottom+' Z';
+  svgNode(svg,'path',{d:fillPath,fill:'#526b82',opacity:.12,class:'population-fill'});
+  drawCurve(svg,points,coords,'#526b82','population-density');
+}
+function renderStatistic(){
+  const label=state.mode==='u'?'Uₙ':'Tₙ',summary=analyze(state.groups,state.mode);
+  const n=state.settings?state.settings.n:$('sample-size').value||'—';
+  const b=state.settings?state.settings.b:$('repeats').value||'—';
+  $('stat-title').textContent='抽样分布：'+label;
+  $('sampling-description').textContent='每组 '+n+' 个观测值，计算 1 个 '+label+'，重复 '+b+' 组';
+  const svg=$('stat-chart'),peak=Math.max(.4,...summary.density,...summary.kde.points.map(p=>p.y));
+  const yMax=Math.ceil(peak*1.12/.1)*.1;
+  const c=axes(svg,[XMIN,XMAX],yMax,[-4,-3,-2,-1,0,1,2,3,4],label+' 的取值',
+    'n='+n+'，'+summary.valid+' 个有效 '+label+' 模拟值的直方图、经验密度和标准正态密度');
+  summary.density.forEach((density,i)=>{
+    if(!density)return;
+    const x=c.sx(XMIN+i*BIN),width=c.sx(XMIN+(i+1)*BIN)-x;
+    svgNode(svg,'rect',{x:x+.5,y:c.sy(density),width:Math.max(0,width-1),height:c.bottom-c.sy(density),fill:'#a32e2e',opacity:.22,class:'histogram'});
+  });
+  drawCurve(svg,summary.kde.points,c,'#a32e2e','empirical');
+  drawCurve(svg,Array.from({length:401},(_,i)=>{const x=XMIN+(XMAX-XMIN)*i/400;return {x,y:normalPDF(x)};}),c,'#14406b','normal-reference');
+  if(!summary.valid)svgNode(svg,'text',{x:(c.left+c.right)/2,y:c.top+45,'text-anchor':'middle','font-size':15},state.busy?'抽样中…':'等待抽样');
+  const info=[];
+  if(summary.left||summary.right)info.push('图外：小于 −4 有 '+summary.left+' 个，大于 4 有 '+summary.right+' 个（仍计入密度分母）');
+  if(summary.invalid)info.push(summary.invalid+' 组 S=0，Tₙ 无定义，单独剔除');
+  $('sample-info').textContent=info.join('；');
+}
+function render(){
+  renderPopulation();renderStatistic();
+  const model=$('model').value;
+  $('context').textContent=model==='normal'
+    ?state.mode==='u'?'正态总体：Uₙ 对任意 n 都精确服从 N(0,1)。':'正态总体：Tₙ 精确服从 t(n − 1)，随 n 增大接近 N(0,1)。'
+    :state.mode==='t'?'非正态总体：Tₙ 一般没有精确的 t 分布，大样本时仍趋近 N(0,1)。'
+    :'增大 n，观察右图怎样变化；增大 B，则让模拟分布的形状呈现得更稳定。';
+}
+function bindNumeric(numberId,sliderId){
+  const number=$(numberId),slider=$(sliderId);
+  slider.addEventListener('input',()=>{number.value=slider.value;invalidate();});
+  slider.addEventListener('change',run);
+  number.addEventListener('input',()=>{
+    const value=Number(number.value);
+    if(number.value!==''&&Number.isInteger(value)&&value>=Number(slider.min)&&value<=Number(slider.max))slider.value=number.value;
+    invalidate();
+  });
+  number.addEventListener('change',run);
+  number.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();run();}});
+}
+$('run').addEventListener('click',run);
+$('model').addEventListener('change',()=>{invalidate();run();});
+bindNumeric('sample-size','n-slider');bindNumeric('repeats','b-slider');
+['stat-u','stat-t'].forEach(id=>$(id).addEventListener('change',()=>{
+  if($(id).checked){state.mode=$(id).value;render();}
+}));
+let resizePending=false;
+window.addEventListener('resize',()=>{
+  if(!resizePending){resizePending=true;requestAnimationFrame(()=>{resizePending=false;render();});}
+});
+run();
+</script>
+</body>
+</html>
