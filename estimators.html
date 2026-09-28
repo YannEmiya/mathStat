@@ -13,6 +13,7 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 .sample-label{font-family:"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.5}.sample-label h3{display:flex;align-items:baseline;gap:10px;height:40px;margin:0;font-size:15px;font-weight:500;white-space:nowrap}.sample-label math{font-size:24px}.sample-label p{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}.sample-label.compact p{text-align:right}
 /* Align text with the mathematical baseline, not the box including accents and subscripts. */
 .method h3{align-items:baseline}.method .dot{position:relative;top:-2px;flex-shrink:0}
+details math{font-size:1.16em}
 @media(max-width:650px){main{padding:20px 16px}h1{font-size:25px}.controls{padding:12px;gap:12px}.pair input[type=range]{width:135px}.controls button{margin-left:0}.tabs{gap:22px}.chart{height:400px}.hist{height:146px}.method{gap:2px}.method .mean{margin-left:21px}.panel-title{align-items:start}.lead{margin-bottom:12px}table{font-size:13px}th,td{padding:8px}}
 .site-nav{font-size:14px;margin:0 0 12px}.site-nav a{color:var(--blue);text-underline-offset:4px}
 </style>
@@ -41,11 +42,11 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 <section id="repeat-panel" role="tabpanel" aria-labelledby="tab-repeat" hidden>
 <div class="panel-title"><h2>每组样本各算一次，累积估计值</h2><span class="truth"><i class="dash" aria-hidden="true"></i>真值 θ = 10</span></div>
 <article><div class="method"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">矩估计</span><math aria-label="2 倍样本均值"><mn>2</mn><mover><mi>X</mi><mo>¯</mo></mover></math></h3><p id="mean-mom" class="mean"></p></div><svg id="hist-mom" class="chart hist" role="img" aria-label="矩估计的模拟抽样分布"></svg></article>
-<article><div class="method max"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">最大值（极大似然）</span><math aria-label="样本最大值 M n"><msub><mi>M</mi><mi>n</mi></msub></math></h3><p id="mean-max" class="mean"></p></div><svg id="hist-max" class="chart hist" role="img" aria-label="样本最大值的模拟抽样分布"></svg></article>
-<article><div class="method corrected"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">无偏修正</span><math aria-label="n 加 1 除以 n，乘以样本最大值"><mfrac><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>n</mi></mfrac><msub><mi>M</mi><mi>n</mi></msub></math></h3><p id="mean-corrected" class="mean"></p></div><svg id="hist-corrected" class="chart hist" role="img" aria-label="无偏修正后的最大值的模拟抽样分布"></svg></article>
+<article><div class="method max"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">最大值（极大似然）</span><math aria-label="样本最大值 X 下标括号 n"><msub><mi>X</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msub></math></h3><p id="mean-max" class="mean"></p></div><svg id="hist-max" class="chart hist" role="img" aria-label="样本最大值的模拟抽样分布"></svg></article>
+<article><div class="method corrected"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">无偏修正</span><math aria-label="n 加 1 除以 n，乘以样本最大值 X 下标括号 n"><mfrac><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>n</mi></mfrac><msub><mi>X</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msub></math></h3><p id="mean-corrected" class="mean"></p></div><svg id="hist-corrected" class="chart hist" role="img" aria-label="无偏修正后的最大值的模拟抽样分布"></svg></article>
 <p class="explanation">三幅图使用相同的横、纵坐标尺度。先比较平均位置与分布宽窄，再增大 n，观察它们是否集中到真值附近。</p>
 <details id="theory"><summary>对照理论期望与方差</summary><div class="table-wrap"><table><thead><tr><th scope="col">方法</th><th scope="col">理论期望</th><th scope="col">模拟平均值</th><th scope="col">理论方差</th><th scope="col">模拟方差</th></tr></thead><tbody id="theory-body"></tbody></table></div>
-<p>Mₙ 表示样本最大值。矩估计和无偏修正的期望均为 θ；最大值的期望为 nθ/(n + 1)，存在向下的偏差。</p>
+<p>矩估计和无偏修正的期望均为 θ；样本最大值的期望为 nθ/(n + 1)，存在向下的偏差。</p>
 <p>三种估计量的方差依次为 θ²/(3n)、nθ²/[(n + 1)²(n + 2)]、θ²/[n(n + 2)]。n &gt; 1 时，无偏修正比矩估计更有效。</p>
 <p>随着 n 增大，这三种估计量都依概率收敛到 θ。无偏性考察期望的位置，相合性考察样本量增大时的行为。</p>
 </details>
@@ -59,7 +60,7 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 // Density histograms use a shared x scale, bin width and y scale; no KDE boundary spill.
 const $=id=>document.getElementById(id);
 const THETA=10;
-const METHODS=[{key:'mom',name:'矩估计 2X̄',color:'#14406b'},{key:'max',name:'最大值 Mₙ（极大似然）',color:'#a32e2e'},{key:'corrected',name:'无偏修正 (n+1)Mₙ/n',color:'#35796d'}];
+const METHODS=[{key:'mom',name:'矩估计 2X̄',color:'#14406b'},{key:'max',name:'最大值 X_(n)（极大似然）',color:'#a32e2e'},{key:'corrected',name:'无偏修正 (n+1)X_(n)/n',color:'#35796d'}];
 const state={mode:'single',n:5,b:2000,valid:true,epoch:0,busy:false,sample:null,groups:[]};
 function estimate(values){
   let total=0,max=0;for(const value of values){total+=value;max=Math.max(max,value);}
@@ -138,7 +139,7 @@ function drawSingle(){
   node(svg,'text',{x:(left+right)/2,y:h-1,'text-anchor':'middle',style:'font-size:13px'},'观测值 / 估计值');
   svg.setAttribute('aria-label',`${state.n} 个观测值来自 U[0,10]。矩估计 ${state.sample.mom.toFixed(3)}，最大值估计 ${state.sample.max.toFixed(3)}，无偏修正 ${state.sample.corrected.toFixed(3)}。横轴为数值。`);
   $('sample-values').textContent=state.sample.values.map(x=>x.toFixed(3)).join('， ');
-  $('sample-calculation').textContent=`本次样本均值 x̄ = ${(state.sample.mom/2).toFixed(3)}；最大值 mₙ = ${state.sample.max.toFixed(3)}。因此 2x̄ = ${state.sample.mom.toFixed(3)}，(n + 1)mₙ/n = ${state.sample.corrected.toFixed(3)}。`;
+  $('sample-calculation').innerHTML=`本次样本均值 <math><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mn>${(state.sample.mom/2).toFixed(3)}</mn></math>；最大值 <math><msub><mi>x</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msub><mo>=</mo><mn>${state.sample.max.toFixed(3)}</mn></math>。因此 <math><mn>2</mn><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mn>${state.sample.mom.toFixed(3)}</mn></math>，<math><mfrac><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>n</mi></mfrac><msub><mi>x</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msub><mo>=</mo><mn>${state.sample.corrected.toFixed(3)}</mn></math>。`;
 }
 function drawHistogram(svg,summary,color,yMax,last){
   const w=Math.max(260,svg.getBoundingClientRect().width),h=w<650?146:133;
@@ -169,7 +170,11 @@ function drawRepeated(){
     $('mean-'+m.key).textContent=`模拟平均值 ${summaries[m.key].mean.toFixed(3)}`;
     $('hist-'+m.key).setAttribute('aria-label',`${m.name}，${state.groups.length} 次模拟，平均值 ${summaries[m.key].mean.toFixed(3)}。横轴为估计值，纵轴为频率密度，真值为 10。`);
   });
-  $('theory-body').innerHTML=METHODS.map(m=>`<tr><th scope="row">${m.name}</th><td>${format(expected[m.key].mean)}</td><td>${format(summaries[m.key].mean)}</td><td>${format(expected[m.key].variance)}</td><td>${format(summaries[m.key].variance)}</td></tr>`).join('');
+  $('theory-body').innerHTML=METHODS.map(m=>{
+    const heading=$('hist-'+m.key).previousElementSibling.querySelector('h3');
+    const label=heading.querySelector('.method-name').textContent+' '+heading.querySelector('math').outerHTML;
+    return `<tr><th scope="row">${label}</th><td>${format(expected[m.key].mean)}</td><td>${format(summaries[m.key].mean)}</td><td>${format(expected[m.key].variance)}</td><td>${format(summaries[m.key].variance)}</td></tr>`;
+  }).join('');
 }
 function render(){if(state.mode==='single')drawSingle();else drawRepeated();}
 function cancel(){state.epoch++;state.busy=false;$('run').disabled=false;}
