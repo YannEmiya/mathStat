@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>两点分布的极大似然估计</title>
+<style>
+:root{--blue:#14406b;--red:#a32e2e;--ink:#223346;--muted:#596a78;--line:#dbe2e8;--pale:#f4f7fa}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:16px/1.6 "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1140px;margin:auto;padding:26px 28px 32px}h1{font-size:28px;line-height:1.3;color:var(--blue);margin:0 0 7px}p{margin:0}.lead{color:var(--muted);margin-bottom:22px}
+button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px solid #aebcc9;border-radius:4px;background:#fff;color:var(--ink);padding:6px 10px}button{cursor:pointer}button.primary{background:var(--blue);border-color:var(--blue);color:white}button:disabled{opacity:.5;cursor:default}input[type=number]{width:90px;font-variant-numeric:tabular-nums}input[type=range]{accent-color:var(--red);min-width:120px;flex:1;cursor:pointer}:focus-visible{outline:3px solid #498dcc;outline-offset:3px}
+.data-controls{display:flex;align-items:end;gap:16px;flex-wrap:wrap;background:var(--pale);padding:14px 18px;border-radius:5px}.field{display:grid;gap:5px}.field>label{font-size:14px;font-weight:600}.presets{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}.presets button{font-size:14px}.presets button[aria-pressed=true]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);color:var(--blue)}
+.observation{display:grid;grid-template-columns:1fr auto;gap:8px 28px;margin:18px 0 12px;align-items:center}.counts{font-size:17px}.counts strong{font-variant-numeric:tabular-nums}.strip{display:flex;overflow:hidden;height:12px;background:#acb9c5;border-radius:2px;margin-top:8px}.strip span{display:block;background:var(--blue)}.swatch{display:inline-block;width:11px;height:11px;margin-right:5px;background:var(--blue)}.swatch.failure{background:#acb9c5;margin-left:18px}.formula{font-size:22px;color:var(--blue);padding-top:4px;white-space:nowrap}.formula math{font:24px "STIX Two Math","Cambria Math",serif}
+.error{color:var(--red);min-height:25px;font-size:14px;margin:4px 0}.chart{width:100%;height:350px;display:block;touch-action:pan-y}.chart text{font-family:inherit;fill:var(--muted);font-size:14px}.chart .candidate-label{fill:var(--red);font-weight:600}.chart .peak-label{fill:var(--blue);font-weight:600}
+.sample{font-size:14px;color:var(--muted);margin-top:8px;overflow-wrap:anywhere}.meaning{color:var(--blue)}
+.candidate{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 0;border-top:1px solid var(--line)}.candidate label{font-weight:600}.candidate-control{display:flex;align-items:center;gap:12px;flex:1;min-width:220px}.likelihood-value{font-variant-numeric:tabular-nums;color:var(--red);min-width:190px}.answer-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:12px 0}.answer{color:var(--blue);font-weight:600}.hint{font-size:14px;color:var(--muted)}details{margin-top:18px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}summary{cursor:pointer;color:var(--blue)}details p{margin-top:8px}noscript{display:block;color:var(--red)}
+@media(max-width:650px){main{padding:20px 16px}h1{font-size:25px}.data-controls{padding:12px;gap:12px}.presets{margin-left:0;width:100%}.observation{grid-template-columns:1fr;gap:12px}.formula{font-size:20px}.chart{height:300px}.candidate{gap:9px}.candidate>label{width:100%}.candidate-control{min-width:0;width:100%}.likelihood-value{width:100%}.answer-row{gap:10px}.lead{margin-bottom:16px}}
+.site-nav{font-size:14px;margin:0 0 12px}.site-nav a{color:var(--blue);text-underline-offset:4px}
+</style>
+</head>
+<body>
+<main>
+<nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
+<h1>两点分布的极大似然估计</h1>
+<p class="lead">每次试验的结果只取 1（成功）或 0（失败），成功概率为 <i>p</i>，各次试验相互独立。</p>
+<section class="data-controls" aria-label="已经观测到的数据">
+<div class="field"><label for="trials">总次数 n</label><input id="trials" type="number" min="1" max="2000" step="1" value="10" required></div>
+<div class="field"><label for="successes">成功次数 k</label><input id="successes" type="number" min="0" max="10" step="1" value="8" required></div>
+<div class="presets" aria-label="观测数据示例">
+<button id="preset-small" type="button" aria-pressed="true">10 次，成功 8 次</button>
+<button id="preset-large" type="button" aria-pressed="false">100 次，成功 80 次</button>
+</div>
+</section>
+<section class="observation" aria-label="成功与失败的次数">
+<div><p id="counts" class="counts"></p><div class="strip" aria-hidden="true"><span id="success-strip"></span></div><p id="sample" class="sample"></p></div>
+<div id="formula" class="formula"></div>
+</section>
+<p class="meaning"><strong>L(p)</strong>：当成功概率为 <i>p</i> 时，这组已观测到的具体结果出现的概率。</p>
+<p id="error" class="error" role="alert"></p>
+<svg id="chart" class="chart" role="img" aria-label="横轴为候选成功概率 p，纵轴为似然 L(p)，红点表示当前候选值"></svg>
+<section class="candidate" aria-label="比较候选参数">
+<label for="candidate-number">候选成功概率 p</label>
+<div class="candidate-control"><input id="candidate-slider" type="range" min="0" max="1" step="0.001" value="0.5" aria-label="拖动候选成功概率 p"><input id="candidate-number" type="number" min="0" max="1" step="0.001" value="0.5" required></div>
+<p id="likelihood-value" class="likelihood-value" aria-live="polite"></p>
+</section>
+<div class="answer-row"><button id="reveal" class="primary" type="button" aria-expanded="false" aria-controls="answer">显示极大似然估计</button><p id="answer" class="answer" role="status" aria-live="polite" hidden></p></div>
+<p class="hint">先拖动 p 比较红点的高度。再切换两组成功比例相同的数据，观察曲线的宽窄。纵轴刻度随数据自动调整。</p>
+<details><summary>图中的量与似然公式</summary>
+<p>各次试验独立，且有相同的成功概率 p。固定一组已观测到的 0–1 结果，其中 k 次成功、n − k 次失败，其联合概率为 L(p) = pᵏ(1 − p)ⁿ⁻ᵏ。</p>
+<p>蓝线表示似然 L(p)。纵轴采用线性刻度，数值很小时用科学计数法标注。例如“×10⁻³”表示刻度 2 对应 0.002。它是固定数据后参数 p 的函数，不是 p 的概率密度。</p>
+<p>若只记录成功总次数 k，其概率还包含二项式系数 C(n,k)。该系数与 p 无关，不影响最大值的位置。</p>
+<p>参数范围为 [0, 1]。全部失败时最大值在 p = 0；全部成功时最大值在 p = 1。</p>
+</details>
+<noscript>请在浏览器中启用 JavaScript 以使用此演示。</noscript>
+</main>
+<script>
+'use strict';
+// No external resources. Counts are fixed observations, not regenerated when p changes.
+// L(p) is the joint probability of one observed Bernoulli sequence.
+// Evaluate in log space, then use a decimal axis unit (not the peak) for drawing.
+// This keeps raw likelihood labels meaningful even below Number.MIN_VALUE.
+const $ = id => document.getElementById(id);
+const state = {n:10, k:8, p:0.5, valid:true, revealed:false};
+function logLikelihood(p,n,k){
+  if(p<0 || p>1) return -Infinity;
+  if(p===0) return k===0 ? 0 : -Infinity;
+  if(p===1) return k===n ? 0 : -Infinity;
+  return k*Math.log(p)+(n-k)*Math.log1p(-p);
+}
+function superscript(value){
+  const digits={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(value).split('').map(char=>digits[char]).join('');
+}
+function formatLikelihood(logValue){
+  if(logValue===-Infinity)return '0';
+  // Form mantissa and exponent separately instead of rounding tiny values to zero.
+  let exponent=Math.floor(logValue/Math.LN10);
+  let mantissa=Number(Math.exp(logValue-exponent*Math.LN10).toPrecision(4));
+  if(mantissa>=10){mantissa=1;exponent++;}
+  if(exponent>=-3)return String(Number((mantissa*10**exponent).toPrecision(4)));
+  return `${mantissa} × 10${superscript(exponent)}`;
+}
+function likelihoodAxis(n,k){
+  const peakLog=logLikelihood(k/n,n,k);
+  const exponent=Math.floor(peakLog/Math.LN10);
+  const peakValue=Math.exp(peakLog-exponent*Math.LN10);
+  const roughStep=peakValue/4;
+  const stepPower=10**Math.floor(Math.log10(roughStep));
+  const fraction=roughStep/stepPower;
+  const step=[1,2,2.5,5,10].find(value=>value>=fraction)*stepPower;
+  const intervals=Math.ceil(1.08*peakValue/step);
+  return {exponent,peakValue,top:intervals*step,ticks:Array.from({length:intervals+1},(_,i)=>Number((i*step).toPrecision(8)))};
+}
+function scaledLikelihood(p,n,k,exponent){
+  return Math.exp(logLikelihood(p,n,k)-exponent*Math.LN10);
+}
+function sampleSummary(n,k){
+  // A concrete fixed teaching example with k ones; changing p does not change it.
+  const values=Array.from({length:n},(_,i)=>Math.ceil((i+1)*k/n)-Math.ceil(i*k/n));
+  const shown=n<=20?values.join(', '):`${values.slice(0,10).join(', ')}, …, ${values.slice(-5).join(', ')}`;
+  return `观测数据：(${shown})${n>20?`，共 ${n} 个结果`:''}`;
+}
+function node(parent,name,attrs={},text){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+  Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+  if(text!==undefined)el.textContent=text;
+  parent.appendChild(el);return el;
+}
+function line(svg,x1,y1,x2,y2,attrs={}){return node(svg,'line',{x1,y1,x2,y2,stroke:'#dbe2e8',...attrs});}
+function fixed(x){return x.toFixed(3);}
+function draw(){
+  const svg=$('chart'),w=Math.max(260,svg.getBoundingClientRect().width),h=w<600?300:350;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
+  if(!state.valid){node(svg,'text',{x:w/2,y:h/2,'text-anchor':'middle'},'请先填写有效的数据与候选概率');return;}
+  const box={left:49,right:w-22,top:35,bottom:h-53};
+  const axis=likelihoodAxis(state.n,state.k);
+  const valueAt=p=>scaledLikelihood(p,state.n,state.k,axis.exponent);
+  const x=p=>box.left+p*(box.right-box.left),y=value=>box.bottom-value/axis.top*(box.bottom-box.top);
+  node(svg,'text',{x:box.left,y:17},`似然 L(p)${axis.exponent===0?'':`  (× 10${superscript(axis.exponent)})`}`);
+  axis.ticks.forEach(value=>{line(svg,box.left,y(value),box.right,y(value));node(svg,'text',{x:box.left-10,y:y(value)+5,'text-anchor':'end'},String(value));});
+  const ticks=w<450?[0,.25,.5,.75,1]:[0,.2,.4,.6,.8,1];
+  ticks.forEach(p=>{line(svg,x(p),box.bottom,x(p),box.bottom+5,{stroke:'#9bacbb'});node(svg,'text',{x:x(p),y:box.bottom+23,'text-anchor':'middle'},String(p));});
+  node(svg,'text',{x:(box.left+box.right)/2,y:h-6,'text-anchor':'middle'},'候选成功概率 p');
+  // Include the exact maximizer and extra points near narrow boundary peaks.
+  const points=new Set([state.k/state.n]);
+  for(let i=0;i<=600;i++)points.add(i/600);
+  const peak=state.k/state.n,scale=Math.max(1/state.n,Math.sqrt(peak*(1-peak)/state.n));
+  for(let i=-160;i<=160;i++)points.add(Math.max(0,Math.min(1,peak+i*scale/20)));
+  const path=[...points].sort((a,b)=>a-b).map((p,i)=>`${i?'L':'M'}${x(p).toFixed(3)},${y(valueAt(p)).toFixed(3)}`).join(' ');
+  node(svg,'path',{d:path,fill:'none',stroke:'#14406b','stroke-width':3,'stroke-linejoin':'round'});
+  if(state.revealed){
+    line(svg,x(peak),box.top,x(peak),box.bottom,{stroke:'#14406b','stroke-dasharray':'5 5','stroke-width':1.5});
+    node(svg,'circle',{cx:x(peak),cy:y(axis.peakValue),r:5,fill:'#14406b'});
+    if(w>=600)node(svg,'text',{x:box.right,y:17,'text-anchor':'end',class:'peak-label'},`最大值：p̂ = ${fixed(peak)}`);
+  }
+  const value=valueAt(state.p);
+  line(svg,x(state.p),y(value),x(state.p),box.bottom,{stroke:'#a32e2e','stroke-width':1.5});
+  node(svg,'circle',{cx:x(state.p),cy:y(value),r:6,fill:'#a32e2e',stroke:'#fff','stroke-width':1.5});
+  // Parameter and raw likelihood also appear below the chart, avoiding overlapping annotations.
+  svg.setAttribute('aria-label',`似然曲线，纵轴为 L(p)，线性刻度${axis.exponent===0?'':`乘以 10 的 ${axis.exponent} 次方`}。当前 p=${fixed(state.p)}，L(p)=${formatLikelihood(logLikelihood(state.p,state.n,state.k))}。${state.revealed?'最大值在 p='+fixed(peak)+'。':''}`);
+}
+function render(){
+  $('reveal').disabled=!state.valid;
+  $('preset-small').setAttribute('aria-pressed',String(state.valid&&state.n===10&&state.k===8));
+  $('preset-large').setAttribute('aria-pressed',String(state.valid&&state.n===100&&state.k===80));
+  if(state.valid){
+    $('counts').innerHTML=`<span class="swatch" aria-hidden="true"></span>成功 <strong>${state.k}</strong> 次<span class="swatch failure" aria-hidden="true"></span>失败 <strong>${state.n-state.k}</strong> 次`;
+    $('success-strip').style.width=`${100*state.k/state.n}%`;
+    $('sample').textContent=sampleSummary(state.n,state.k);
+    $('formula').innerHTML=`<math aria-label="似然等于 p 的 ${state.k} 次方乘以一减 p 的 ${state.n-state.k} 次方"><mi>L</mi><mo>(</mo><mi>p</mi><mo>)</mo><mo>=</mo><msup><mi>p</mi><mn>${state.k}</mn></msup><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo>)</mo></mrow><mn>${state.n-state.k}</mn></msup></math>`;
+    $('likelihood-value').textContent=`L(p) = ${formatLikelihood(logLikelihood(state.p,state.n,state.k))}`;
+  }else{
+    $('counts').textContent='请检查输入';$('success-strip').style.width='0%';$('sample').textContent='';$('formula').textContent='';$('likelihood-value').textContent='';
+  }
+  $('answer').hidden=!state.revealed||!state.valid;
+  $('answer').textContent=state.revealed&&state.valid?`p̂ = k/n = ${state.k}/${state.n} = ${fixed(state.k/state.n)}`:'';
+  $('reveal').textContent=state.revealed?'隐藏极大似然估计':'显示极大似然估计';
+  $('reveal').setAttribute('aria-expanded',String(state.revealed&&state.valid));draw();
+}
+function readInputs(dataChanged){
+  const n=Number($('trials').value),k=Number($('successes').value),p=Number($('candidate-number').value);
+  const nOK=$('trials').value!==''&&Number.isInteger(n)&&n>=1&&n<=2000;
+  const kOK=$('successes').value!==''&&Number.isInteger(k)&&k>=0&&k<=n;
+  const pOK=$('candidate-number').value!==''&&Number.isFinite(p)&&p>=0&&p<=1;
+  [['trials',nOK],['successes',kOK],['candidate-number',pOK]].forEach(([id,ok])=>$(id).setAttribute('aria-invalid',String(!ok)));
+  $('error').textContent=!nOK?'总次数 n 请填 1–2000 的整数。':!kOK?'成功次数 k 请填 0 到 n 之间的整数。':!pOK?'候选概率 p 请填 0 到 1 之间的数。':'';
+  state.valid=nOK&&kOK&&pOK;if(dataChanged)state.revealed=false;
+  if(nOK)$('successes').max=String(n);
+  if(state.valid){state.n=n;state.k=k;state.p=p;$('candidate-slider').value=String(p);}
+  render();
+}
+function preset(n,k){$('trials').value=String(n);$('successes').value=String(k);readInputs(true);}
+$('trials').addEventListener('input',()=>readInputs(true));
+$('successes').addEventListener('input',()=>readInputs(true));
+$('candidate-number').addEventListener('input',()=>readInputs(false));
+$('candidate-slider').addEventListener('input',()=>{$('candidate-number').value=$('candidate-slider').value;readInputs(false);});
+$('preset-small').addEventListener('click',()=>preset(10,8));
+$('preset-large').addEventListener('click',()=>preset(100,80));
+$('reveal').addEventListener('click',()=>{if(state.valid){state.revealed=!state.revealed;render();}});
+new ResizeObserver(draw).observe($('chart'));
+render();
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@
 - `index.html`：互动演示索引。
 - `ecdf.html`：[经验分布函数与总体分布函数](https://yannemiya.github.io/mathStat/ecdf.html)。
 - `clt.html`：[大样本正态近似](https://yannemiya.github.io/mathStat/clt.html)。
+- `likelihood.html`：[两点分布的极大似然估计](https://yannemiya.github.io/mathStat/likelihood.html)。
 - `estimators.html`：[估计量的比较](https://yannemiya.github.io/mathStat/estimators.html)。
 
 ## 经验分布函数与总体分布函数
@@ -28,6 +29,14 @@
 - 用滑块或数字输入调节每组样本量 n（2–1000）与重复抽样次数 B（100–10000）。
 - 页面可离线打开，不依赖外部脚本或网络服务。
 
+## 两点分布的极大似然估计
+
+- 固定一组独立的 0–1 观测数据，设置总次数 n（1–2000）和成功次数 k。
+- 调整候选成功概率 p，比较 `L(p)=p^k(1-p)^(n-k)`：当成功概率为 p 时，这组具体观测结果出现的概率。
+- 纵轴显示原始似然，采用自动缩放的线性刻度，小数用科学计数法标注。
+- 提供“10 次成功 8 次”和“100 次成功 80 次”两组预设，可显示或隐藏极大似然估计。
+- 支持全成功、全失败及极小似然值，页面可离线打开。
+
 ## 估计量的比较
 
 - 固定总体 `U[0,θ]` 的真值 θ=10，比较矩估计 $2\overline X$、样本最大值 $X_{(n)}$ 及无偏修正 $\frac{n+1}{n}X_{(n)}$。
@@ -46,6 +55,7 @@
 本仓库位于课程备课目录的 `mathStat/` 子目录，是独立的发布仓库。
 `ecdf.html` 对应备课工作文件 `../interact/经验分布函数.html`，
 `clt.html` 对应 `../interact/大样本近似.html`，
+`likelihood.html` 对应 `../interact/极大似然估计.html`，
 `estimators.html` 对应 `../interact/估计量的比较.html`。网页版另有返回索引的导航；
 修改演示后，应同步更新对应的本地版和网页版正文与脚本，再检查并发布。
 演示页不标注课件章节号。新增演示时在 `index.html` 的列表中添加链接。
