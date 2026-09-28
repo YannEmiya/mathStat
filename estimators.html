@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>估计量的比较</title>
+<style>
+:root{--blue:#14406b;--red:#a32e2e;--green:#35796d;--ink:#223346;--muted:#596a78;--line:#dbe2e8;--pale:#f4f7fa}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:16px/1.6 "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif}main{max-width:1140px;margin:auto;padding:26px 28px 32px}h1{font-size:28px;line-height:1.3;color:var(--blue);margin:0 0 7px}h2{font-size:18px;margin:0;color:var(--blue)}p{margin:0}.lead{color:var(--muted);margin-bottom:18px}.lead strong{color:var(--ink);font-weight:500}.math{font-family:"STIX Two Math","Cambria Math",serif;font-size:1.16em}math{font:22px "STIX Two Math","Cambria Math",serif}
+button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px solid #aebcc9;border-radius:4px;background:#fff;color:var(--ink);padding:6px 10px}button{cursor:pointer}button.primary{background:var(--blue);color:#fff;border-color:var(--blue);padding-left:18px;padding-right:18px}button:disabled{opacity:.55;cursor:wait}input[type=number]{width:92px;font-variant-numeric:tabular-nums}input[type=range]{accent-color:var(--blue);width:175px;cursor:pointer}:focus-visible{outline:3px solid #498dcc;outline-offset:3px}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:16px}.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;padding:8px 3px;background:transparent;color:var(--muted)}.tabs button[aria-selected=true]{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}.controls{display:flex;align-items:end;gap:22px;flex-wrap:wrap;padding:14px 18px;background:var(--pale);border-radius:5px}.field{display:grid;gap:5px}.field>label{font-size:14px;font-weight:600}.pair{display:flex;align-items:center;gap:10px}.controls button{margin-left:auto}.status{font-size:14px;color:var(--muted);min-height:27px;margin:8px 0}.status.error{color:var(--red)}
+.panel-title{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0}.truth{font-size:14px;color:var(--ink);white-space:nowrap}.dash{display:inline-block;width:23px;border-top:2px dashed var(--ink);vertical-align:middle;margin-right:7px}.chart{display:block;width:100%;height:350px}.chart text{font-family:inherit;fill:var(--muted);font-size:14px}.hist{height:133px}.method{display:flex;justify-content:space-between;align-items:baseline;gap:6px 20px;flex-wrap:wrap;margin-top:9px}.method h3{margin:0;font-size:16px;font-weight:500;display:flex;align-items:center;gap:10px}.method .dot{height:11px;width:11px;display:inline-block;background:var(--blue)}.method.max .dot{background:var(--red)}.method.corrected .dot{background:var(--green)}.method .mean{font-size:14px;font-variant-numeric:tabular-nums;color:var(--muted)}.explanation{font-size:14px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}details{font-size:14px;color:var(--muted);border-top:1px solid var(--line);margin-top:18px;padding-top:12px}summary{cursor:pointer;color:var(--blue)}details p{margin-top:10px}.values{font-variant-numeric:tabular-nums;word-spacing:7px;overflow-wrap:anywhere}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;margin:12px 0;text-align:right;font-variant-numeric:tabular-nums}th,td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}th{font-weight:500;color:var(--ink)}th:first-child,td:first-child{text-align:left}noscript{color:var(--red)}[hidden]{display:none!important}
+.sample-label{font-family:"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.5}.sample-label h3{display:flex;align-items:baseline;gap:10px;height:40px;margin:0;font-size:15px;font-weight:500;white-space:nowrap}.sample-label math{font-size:24px}.sample-label p{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}.sample-label.compact p{text-align:right}
+/* Align text with the mathematical baseline, not the box including accents and subscripts. */
+.method h3{align-items:baseline}.method .dot{position:relative;top:-2px;flex-shrink:0}
+@media(max-width:650px){main{padding:20px 16px}h1{font-size:25px}.controls{padding:12px;gap:12px}.pair input[type=range]{width:135px}.controls button{margin-left:0}.tabs{gap:22px}.chart{height:400px}.hist{height:146px}.method{gap:2px}.method .mean{margin-left:21px}.panel-title{align-items:start}.lead{margin-bottom:12px}table{font-size:13px}th,td{padding:8px}}
+.site-nav{font-size:14px;margin:0 0 12px}.site-nav a{color:var(--blue);text-underline-offset:4px}
+</style>
+</head>
+<body>
+<main>
+<nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
+<h1>估计量的比较</h1>
+<p class="lead">从 <strong>U[0, θ]</strong> 抽样，估计右端点 θ。演示中固定真值 <strong>θ = 10</strong>。</p>
+<div class="tabs" role="tablist" aria-label="观察方式">
+<button id="tab-single" type="button" role="tab" aria-selected="true" aria-controls="single-panel">先看一组样本</button>
+<button id="tab-repeat" type="button" role="tab" aria-selected="false" aria-controls="repeat-panel" tabindex="-1">再看重复抽样</button>
+</div>
+<section class="controls" aria-label="抽样设置">
+<div class="field"><label for="sample-size">每组样本量 n</label><div class="pair"><input id="n-slider" type="range" min="2" max="500" step="1" value="5" aria-label="调节每组样本量 n"><input id="sample-size" type="number" min="2" max="500" step="1" value="5" required></div></div>
+<div id="repeat-field" class="field" hidden><label for="repeats">重复抽样次数 B</label><input id="repeats" type="number" min="100" max="10000" step="1" value="2000" required></div>
+<button id="run" class="primary" type="button">再抽一组</button>
+</section>
+<p id="status" class="status" role="status" aria-live="polite"></p>
+<section id="single-panel" role="tabpanel" aria-labelledby="tab-single">
+<div class="panel-title"><h2>同一组数据，算出三个估计值</h2><span class="truth"><i class="dash" aria-hidden="true"></i>真值 θ = 10</span></div>
+<svg id="sample-chart" class="chart" role="img" aria-label="样本观测值以及三种方法得到的端点估计值"></svg>
+<p class="explanation">灰点是本次抽到的数。下面每个彩色标记，都是用这同一组数算出的一个估计值。</p>
+<details><summary>查看这组数据与计算</summary><p id="sample-values" class="values"></p><p id="sample-calculation"></p></details>
+</section>
+<section id="repeat-panel" role="tabpanel" aria-labelledby="tab-repeat" hidden>
+<div class="panel-title"><h2>每组样本各算一次，累积估计值</h2><span class="truth"><i class="dash" aria-hidden="true"></i>真值 θ = 10</span></div>
+<article><div class="method"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">矩估计</span><math aria-label="2 倍样本均值"><mn>2</mn><mover><mi>X</mi><mo>¯</mo></mover></math></h3><p id="mean-mom" class="mean"></p></div><svg id="hist-mom" class="chart hist" role="img" aria-label="矩估计的模拟抽样分布"></svg></article>
+<article><div class="method max"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">最大值（极大似然）</span><math aria-label="样本最大值 M n"><msub><mi>M</mi><mi>n</mi></msub></math></h3><p id="mean-max" class="mean"></p></div><svg id="hist-max" class="chart hist" role="img" aria-label="样本最大值的模拟抽样分布"></svg></article>
+<article><div class="method corrected"><h3><i class="dot" aria-hidden="true"></i><span class="method-name">无偏修正</span><math aria-label="n 加 1 除以 n，乘以样本最大值"><mfrac><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>n</mi></mfrac><msub><mi>M</mi><mi>n</mi></msub></math></h3><p id="mean-corrected" class="mean"></p></div><svg id="hist-corrected" class="chart hist" role="img" aria-label="无偏修正后的最大值的模拟抽样分布"></svg></article>
+<p class="explanation">三幅图使用相同的横、纵坐标尺度。先比较平均位置与分布宽窄，再增大 n，观察它们是否集中到真值附近。</p>
+<details id="theory"><summary>对照理论期望与方差</summary><div class="table-wrap"><table><thead><tr><th scope="col">方法</th><th scope="col">理论期望</th><th scope="col">模拟平均值</th><th scope="col">理论方差</th><th scope="col">模拟方差</th></tr></thead><tbody id="theory-body"></tbody></table></div>
+<p>Mₙ 表示样本最大值。矩估计和无偏修正的期望均为 θ；最大值的期望为 nθ/(n + 1)，存在向下的偏差。</p>
+<p>三种估计量的方差依次为 θ²/(3n)、nθ²/[(n + 1)²(n + 2)]、θ²/[n(n + 2)]。n &gt; 1 时，无偏修正比矩估计更有效。</p>
+<p>随着 n 增大，这三种估计量都依概率收敛到 θ。无偏性考察期望的位置，相合性考察样本量增大时的行为。</p>
+</details>
+</section>
+<noscript>请在浏览器中启用 JavaScript 以使用此演示。</noscript>
+</main>
+<script>
+'use strict';
+// All three estimates use the SAME group. Groups are independent across repetitions.
+// Fixed support [0, 2θ] displays every possible value of all three estimates for n >= 2.
+// Density histograms use a shared x scale, bin width and y scale; no KDE boundary spill.
+const $=id=>document.getElementById(id);
+const THETA=10;
+const METHODS=[{key:'mom',name:'矩估计 2X̄',color:'#14406b'},{key:'max',name:'最大值 Mₙ（极大似然）',color:'#a32e2e'},{key:'corrected',name:'无偏修正 (n+1)Mₙ/n',color:'#35796d'}];
+const state={mode:'single',n:5,b:2000,valid:true,epoch:0,busy:false,sample:null,groups:[]};
+function estimate(values){
+  let total=0,max=0;for(const value of values){total+=value;max=Math.max(max,value);}
+  return {mom:2*total/values.length,max,corrected:(values.length+1)/values.length*max};
+}
+function sampleGroup(n,rng=Math.random,keepValues=false){
+  let sum=0,max=0;const values=keepValues?[]:null;
+  for(let i=0;i<n;i++){const x=THETA*rng();sum+=x;max=Math.max(max,x);if(values)values.push(x);}
+  return {mom:2*sum/n,max,corrected:(n+1)/n*max,...(values?{values}:{})};
+}
+function theory(n){return {
+  mom:{mean:THETA,variance:THETA**2/(3*n)},
+  max:{mean:n*THETA/(n+1),variance:n*THETA**2/((n+1)**2*(n+2))},
+  corrected:{mean:THETA,variance:THETA**2/(n*(n+2))}
+};}
+function histogram(groups,key,binCount){
+  const bins=Array(binCount).fill(0),width=2*THETA/binCount;
+  let mean=0,m2=0;
+  groups.forEach((group,i)=>{
+    const value=group[key],delta=value-mean;mean+=delta/(i+1);m2+=delta*(value-mean);
+    const index=Math.max(0,Math.min(binCount-1,Math.floor(value/width)));bins[index]++;
+  });
+  return {bins,width,mean,variance:groups.length>1?m2/(groups.length-1):0,density:bins.map(c=>groups.length?c/(groups.length*width):0)};
+}
+function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);}
+function node(parent,name,attrs={},text){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));
+  if(text!==undefined)el.textContent=text;parent.appendChild(el);return el;
+}
+function line(svg,x1,y1,x2,y2,attrs={}){return node(svg,'line',{x1,y1,x2,y2,stroke:'#dbe2e8',...attrs});}
+function format(x){return Number(x.toPrecision(4)).toString();}
+function empty(svg,message){
+  const w=Math.max(260,svg.getBoundingClientRect().width),h=svg.classList.contains('hist')?133:350;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
+  node(svg,'text',{x:w/2,y:h/2,'text-anchor':'middle'},message);
+}
+function drawSingle(){
+  const svg=$('sample-chart');
+  if(!state.valid||!state.sample){empty(svg,'请设置样本量后抽样');$('sample-values').textContent='';$('sample-calculation').textContent='';return;}
+  const w=Math.max(260,svg.getBoundingClientRect().width),compact=w<650,h=compact?400:350;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
+  const left=compact?24:218,right=w-23,x=v=>left+(right-left)*v/(2*THETA);
+  const ys=compact?[70,157,239,321]:[70,144,213,282],bottom=h-39;
+  const truthStyle={stroke:'#223346','stroke-dasharray':'5 5','stroke-width':1.5};
+  if(compact)ys.forEach(y=>line(svg,x(THETA),y-12,x(THETA),y+12,truthStyle));
+  else line(svg,x(THETA),32,x(THETA),bottom,truthStyle);
+  node(svg,'text',{x:x(THETA),y:20,'text-anchor':'middle'},'θ = 10');
+  const rows=[{name:`观测值（${state.n} 个）`,color:'#788a99'},...METHODS];
+  rows.forEach((row,i)=>{
+    line(svg,left,ys[i],right,ys[i]);
+    const labelStyle=`fill:${i?row.color:'#596a78'};font-size:14px`;
+    if(i===0)node(svg,'text',{x:compact?left:4,y:compact?ys[i]-23:ys[i]+5,style:labelStyle},row.name);
+    else{
+      // Reuse the repeated-sampling view's MathML, including the overbar and stacked fraction.
+      const label=node(svg,'foreignObject',{x:compact?left:4,y:ys[i]-(compact?69:29),width:compact?right-left:left-17,height:64});
+      const content=document.createElementNS('http://www.w3.org/1999/xhtml','div');
+      content.className='sample-label'+(compact?' compact':'');content.style.color=row.color;
+      const heading=$('hist-'+row.key).previousElementSibling.querySelector('h3').cloneNode(true);
+      heading.querySelector('.dot').remove();
+      const value=document.createElementNS('http://www.w3.org/1999/xhtml','p');
+      value.textContent=`估计值 ${state.sample[row.key].toFixed(3)}`;
+      content.append(heading,value);label.appendChild(content);
+    }
+    if(i===0){
+      state.sample.values.forEach((v,j)=>node(svg,'circle',{cx:x(v),cy:ys[0]+((j%5)-2)*4,r:state.n>100?2.3:4.2,fill:'#788a99','fill-opacity':.65}));
+    }else{
+      const cx=x(state.sample[row.key]),cy=ys[i];
+      if(i===1)node(svg,'circle',{cx,cy,r:7,fill:row.color});
+      else if(i===2)node(svg,'rect',{x:cx-6,y:cy-6,width:12,height:12,fill:row.color});
+      else node(svg,'path',{d:`M${cx},${cy-8} L${cx+8},${cy} L${cx},${cy+8} L${cx-8},${cy} Z`,fill:row.color});
+    }
+  });
+  [0,5,10,15,20].forEach(v=>{line(svg,x(v),bottom,x(v),bottom+4,{stroke:'#9bacbb'});node(svg,'text',{x:x(v),y:bottom+22,'text-anchor':'middle'},String(v));});
+  line(svg,left,bottom,right,bottom,{stroke:'#9bacbb'});
+  node(svg,'text',{x:(left+right)/2,y:h-1,'text-anchor':'middle',style:'font-size:13px'},'观测值 / 估计值');
+  svg.setAttribute('aria-label',`${state.n} 个观测值来自 U[0,10]。矩估计 ${state.sample.mom.toFixed(3)}，最大值估计 ${state.sample.max.toFixed(3)}，无偏修正 ${state.sample.corrected.toFixed(3)}。横轴为数值。`);
+  $('sample-values').textContent=state.sample.values.map(x=>x.toFixed(3)).join('， ');
+  $('sample-calculation').textContent=`本次样本均值 x̄ = ${(state.sample.mom/2).toFixed(3)}；最大值 mₙ = ${state.sample.max.toFixed(3)}。因此 2x̄ = ${state.sample.mom.toFixed(3)}，(n + 1)mₙ/n = ${state.sample.corrected.toFixed(3)}。`;
+}
+function drawHistogram(svg,summary,color,yMax,last){
+  const w=Math.max(260,svg.getBoundingClientRect().width),h=w<650?146:133;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
+  const box={left:49,right:w-23,top:20,bottom:h-(last?39:27)};
+  const x=v=>box.left+(box.right-box.left)*v/(2*THETA),y=v=>box.bottom-v/yMax*(box.bottom-box.top);
+  [0,yMax/2,yMax].forEach(v=>{line(svg,box.left,y(v),box.right,y(v));node(svg,'text',{x:box.left-8,y:y(v)+4,'text-anchor':'end'},format(v));});
+  node(svg,'text',{x:box.left,y:12,style:'font-size:12px'},'频率密度');
+  summary.density.forEach((d,i)=>{
+    if(d)node(svg,'rect',{x:x(i*summary.width),y:y(d),width:Math.max(.25,x((i+1)*summary.width)-x(i*summary.width)-.5),height:box.bottom-y(d),fill:color,'fill-opacity':.6});
+  });
+  line(svg,x(THETA),box.top,x(THETA),box.bottom,{stroke:'#223346','stroke-dasharray':'5 5','stroke-width':1.5});
+  [0,5,10,15,20].forEach(v=>node(svg,'text',{x:x(v),y:box.bottom+20,'text-anchor':'middle'},String(v)));
+  if(last)node(svg,'text',{x:(box.left+box.right)/2,y:h-1,'text-anchor':'middle'},'估计值（每组样本算出一个）');
+}
+function drawRepeated(){
+  if(!state.valid||!state.groups.length){
+    METHODS.forEach(m=>{empty($('hist-'+m.key),state.busy?'正在抽样…':'点击“重新抽样”生成估计值');$('mean-'+m.key).textContent='';});$('theory-body').replaceChildren();return;
+  }
+  // Use an even number of bins, putting θ exactly on a bin edge: maximum values never spill past θ.
+  const binCount=2*Math.round(Math.min(200,Math.max(40,state.n))),summaries={};
+  METHODS.forEach(m=>summaries[m.key]=histogram(state.groups,m.key,binCount));
+  const maxDensity=Math.max(...METHODS.flatMap(m=>summaries[m.key].density));
+  const rawMax=maxDensity*1.08,unit=10**Math.floor(Math.log10(rawMax));
+  const yMax=Math.ceil(rawMax/unit*2)/2*unit,expected=theory(state.n);
+  METHODS.forEach((m,i)=>{
+    drawHistogram($('hist-'+m.key),summaries[m.key],m.color,yMax,i===2);
+    $('mean-'+m.key).textContent=`模拟平均值 ${summaries[m.key].mean.toFixed(3)}`;
+    $('hist-'+m.key).setAttribute('aria-label',`${m.name}，${state.groups.length} 次模拟，平均值 ${summaries[m.key].mean.toFixed(3)}。横轴为估计值，纵轴为频率密度，真值为 10。`);
+  });
+  $('theory-body').innerHTML=METHODS.map(m=>`<tr><th scope="row">${m.name}</th><td>${format(expected[m.key].mean)}</td><td>${format(summaries[m.key].mean)}</td><td>${format(expected[m.key].variance)}</td><td>${format(summaries[m.key].variance)}</td></tr>`).join('');
+}
+function render(){if(state.mode==='single')drawSingle();else drawRepeated();}
+function cancel(){state.epoch++;state.busy=false;$('run').disabled=false;}
+function validInputs(){
+  const n=Number($('sample-size').value),b=Number($('repeats').value);
+  const nOK=$('sample-size').value!==''&&Number.isInteger(n)&&n>=2&&n<=500;
+  const bOK=$('repeats').value!==''&&Number.isInteger(b)&&b>=100&&b<=10000;
+  $('sample-size').setAttribute('aria-invalid',String(!nOK));$('repeats').setAttribute('aria-invalid',String(!bOK));
+  state.valid=nOK&&(state.mode==='single'||bOK);
+  if(!state.valid){status(!nOK?'样本量 n 请填 2–500 的整数。':'重复次数 B 请填 100–10000 的整数。',true);return false;}
+  state.n=n;if(bOK)state.b=b;$('n-slider').value=String(n);return true;
+}
+function run(){
+  cancel();if(!validInputs()){render();return;}
+  if(state.mode==='single'){
+    state.sample=sampleGroup(state.n,Math.random,true);
+    status(`本次独立抽取 ${state.n} 个观测值，同时计算三种估计。`);render();return;
+  }
+  state.groups=[];state.busy=true;$('run').disabled=true;
+  const epoch=state.epoch,n=state.n,b=state.b;
+  status(`每组 ${n} 个数，正在重复抽样 ${b.toLocaleString()} 组…`);render();
+  function batch(){
+    if(epoch!==state.epoch)return;
+    const start=performance.now();let steps=0;
+    while(state.groups.length<b&&steps<200&&performance.now()-start<14){state.groups.push(sampleGroup(n));steps++;}
+    if(state.groups.length<b)requestAnimationFrame(batch);
+    else{state.busy=false;$('run').disabled=false;status(`每组 ${n} 个数，共 ${b.toLocaleString()} 组。每组同时算出三种估计；B 只改变模拟次数。`);render();}
+  }
+  requestAnimationFrame(batch);
+}
+function invalidate(){
+  cancel();state.sample=null;state.groups=[];
+  if(validInputs())status('设置已改变；确认输入后抽样，也可点击抽样按钮。');render();
+}
+function selectMode(mode){
+  if(state.mode===mode)return;
+  const interrupted=state.busy;cancel();if(interrupted)state.groups=[];
+  state.mode=mode;
+  ['single','repeat'].forEach(m=>{const on=m===mode;$('tab-'+m).setAttribute('aria-selected',String(on));$('tab-'+m).tabIndex=on?0:-1;$(m+'-panel').hidden=!on;});
+  $('repeat-field').hidden=mode==='single';$('run').textContent=mode==='single'?'再抽一组':'重新抽样';
+  if(!validInputs()){render();return;}
+  if(mode==='repeat'&&!state.groups.length||mode==='single'&&!state.sample)run();
+  else{status(mode==='single'?`本次独立抽取 ${state.n} 个观测值，同时计算三种估计。`:`每组 ${state.n} 个数，沿用已生成的 ${state.groups.length.toLocaleString()} 组样本。`);render();}
+}
+$('run').addEventListener('click',run);
+$('sample-size').addEventListener('input',invalidate);$('sample-size').addEventListener('change',run);
+$('n-slider').addEventListener('input',()=>{$('sample-size').value=$('n-slider').value;invalidate();});$('n-slider').addEventListener('change',run);
+$('repeats').addEventListener('input',invalidate);$('repeats').addEventListener('change',run);
+['single','repeat'].forEach(mode=>{
+  const tab=$('tab-'+mode);tab.addEventListener('click',()=>selectMode(mode));
+  tab.addEventListener('keydown',event=>{
+    if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){
+      event.preventDefault();const next=event.key==='Home'?'single':event.key==='End'?'repeat':mode==='single'?'repeat':'single';selectMode(next);$('tab-'+next).focus();
+    }
+  });
+});
+new ResizeObserver(render).observe(document.querySelector('main'));
+run();
+</script>
+</body>
+</html>
