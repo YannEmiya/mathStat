@@ -13,6 +13,7 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 .observation{display:grid;grid-template-columns:1fr auto;gap:8px 28px;margin:18px 0 12px;align-items:center}.counts{font-size:17px}.counts strong{font-variant-numeric:tabular-nums}.strip{display:flex;overflow:hidden;height:12px;background:#acb9c5;border-radius:2px;margin-top:8px}.strip span{display:block;background:var(--blue)}.swatch{display:inline-block;width:11px;height:11px;margin-right:5px;background:var(--blue)}.swatch.failure{background:#acb9c5;margin-left:18px}.formula{font-size:22px;color:var(--blue);padding-top:4px;white-space:nowrap}.formula math{font:24px "STIX Two Math","Cambria Math",serif}
 .error{color:var(--red);min-height:25px;font-size:14px;margin:4px 0}.chart{width:100%;height:350px;display:block;touch-action:pan-y}.chart text{font-family:inherit;fill:var(--muted);font-size:14px}.chart .candidate-label{fill:var(--red);font-weight:600}.chart .peak-label{fill:var(--blue);font-weight:600}
 .sample{font-size:14px;color:var(--muted);margin-top:8px;overflow-wrap:anywhere}.meaning{color:var(--blue)}
+.scale-controls{display:flex;align-items:center;gap:12px;margin:0 0 7px;font-size:14px}.scale-buttons{display:flex;gap:8px}.scale-buttons button{font-size:14px}.scale-buttons button[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#fff}.scale-note{font-size:14px;color:var(--muted);margin-bottom:12px}
 .candidate{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 0;border-top:1px solid var(--line)}.candidate label{font-weight:600}.candidate-control{display:flex;align-items:center;gap:12px;flex:1;min-width:220px}.likelihood-value{font-variant-numeric:tabular-nums;color:var(--red);min-width:190px}.answer-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:12px 0}.answer{color:var(--blue);font-weight:600}.hint{font-size:14px;color:var(--muted)}details{margin-top:18px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}summary{cursor:pointer;color:var(--blue)}details p{margin-top:8px}noscript{display:block;color:var(--red)}
 @media(max-width:650px){main{padding:20px 16px}h1{font-size:25px}.data-controls{padding:12px;gap:12px}.presets{margin-left:0;width:100%}.observation{grid-template-columns:1fr;gap:12px}.formula{font-size:20px}.chart{height:300px}.candidate{gap:9px}.candidate>label{width:100%}.candidate-control{min-width:0;width:100%}.likelihood-value{width:100%}.answer-row{gap:10px}.lead{margin-bottom:16px}}
 .site-nav{font-size:14px;margin:0 0 12px}.site-nav a{color:var(--blue);text-underline-offset:4px}
@@ -37,6 +38,12 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 </section>
 <p class="meaning"><strong>L(p)</strong>：当成功概率为 <i>p</i> 时，这组已观测到的具体结果出现的概率。</p>
 <p id="error" class="error" role="alert"></p>
+<div class="scale-controls" role="group" aria-label="纵轴显示方式">
+<span>纵轴</span><div class="scale-buttons">
+<button id="scale-raw" type="button" aria-pressed="true" aria-controls="chart scale-note likelihood-value">原始似然</button>
+<button id="scale-relative" type="button" aria-pressed="false" aria-controls="chart scale-note likelihood-value">相对似然</button>
+</div></div>
+<p id="scale-note" class="scale-note" role="status" aria-live="polite"></p>
 <svg id="chart" class="chart" role="img" aria-label="横轴为候选成功概率 p，纵轴为似然 L(p)，红点表示当前候选值"></svg>
 <section class="candidate" aria-label="比较候选参数">
 <label for="candidate-number">候选成功概率 p</label>
@@ -44,10 +51,12 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 <p id="likelihood-value" class="likelihood-value" aria-live="polite"></p>
 </section>
 <div class="answer-row"><button id="reveal" class="primary" type="button" aria-expanded="false" aria-controls="answer">显示极大似然估计</button><p id="answer" class="answer" role="status" aria-live="polite" hidden></p></div>
-<p class="hint">先拖动 p 比较红点的高度。再切换两组成功比例相同的数据，观察曲线的宽窄。纵轴刻度随数据自动调整。</p>
+<p class="hint">先拖动 p 比较红点的高度。再切换两组成功比例相同的数据，观察曲线的宽窄。</p>
 <details><summary>图中的量与似然公式</summary>
 <p>各次试验独立，且有相同的成功概率 p。固定一组已观测到的 0–1 结果，其中 k 次成功、n − k 次失败，其联合概率为 L(p) = pᵏ(1 − p)ⁿ⁻ᵏ。</p>
-<p>蓝线表示似然 L(p)。纵轴采用线性刻度，数值很小时用科学计数法标注。例如“×10⁻³”表示刻度 2 对应 0.002。它是固定数据后参数 p 的函数，不是 p 的概率密度。</p>
+<p>选择“原始似然”时，纵轴显示 L(p)，数值很小时用科学计数法标注。例如“×10⁻³”表示刻度 2 对应 0.002。</p>
+<p>选择“相对似然”时，纵轴显示 L(p) / max L(p)，即把各处的似然除以这组数据下的最大似然值，最高点为 1。两种显示方式都采用线性刻度，最大值对应的 p 不变。</p>
+<p>似然是固定数据后参数 p 的函数，不是 p 的概率密度。</p>
 <p>若只记录成功总次数 k，其概率还包含二项式系数 C(n,k)。该系数与 p 无关，不影响最大值的位置。</p>
 <p>参数范围为 [0, 1]。全部失败时最大值在 p = 0；全部成功时最大值在 p = 1。</p>
 </details>
@@ -57,15 +66,18 @@ button,input{font:inherit}button,input[type=number]{min-height:42px;border:1px s
 'use strict';
 // No external resources. Counts are fixed observations, not regenerated when p changes.
 // L(p) is the joint probability of one observed Bernoulli sequence.
-// Evaluate in log space, then use a decimal axis unit (not the peak) for drawing.
+// Evaluate in log space: raw mode uses a decimal axis unit, relative mode uses the peak.
 // This keeps raw likelihood labels meaningful even below Number.MIN_VALUE.
 const $ = id => document.getElementById(id);
-const state = {n:10, k:8, p:0.5, valid:true, revealed:false};
+const state = {n:10, k:8, p:0.5, scale:'raw', valid:true, revealed:false};
 function logLikelihood(p,n,k){
   if(p<0 || p>1) return -Infinity;
   if(p===0) return k===0 ? 0 : -Infinity;
   if(p===1) return k===n ? 0 : -Infinity;
   return k*Math.log(p)+(n-k)*Math.log1p(-p);
+}
+function relativeLogLikelihood(p,n,k){
+  return Math.min(0,logLikelihood(p,n,k)-logLikelihood(k/n,n,k));
 }
 function superscript(value){
   const digits={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
@@ -113,10 +125,11 @@ function draw(){
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
   if(!state.valid){node(svg,'text',{x:w/2,y:h/2,'text-anchor':'middle'},'请先填写有效的数据与候选概率');return;}
   const box={left:49,right:w-22,top:35,bottom:h-53};
-  const axis=likelihoodAxis(state.n,state.k);
-  const valueAt=p=>scaledLikelihood(p,state.n,state.k,axis.exponent);
+  const relative=state.scale==='relative';
+  const axis=relative?{exponent:0,peakValue:1,top:1.08,ticks:[0,.25,.5,.75,1]}:likelihoodAxis(state.n,state.k);
+  const valueAt=p=>relative?Math.exp(relativeLogLikelihood(p,state.n,state.k)):scaledLikelihood(p,state.n,state.k,axis.exponent);
   const x=p=>box.left+p*(box.right-box.left),y=value=>box.bottom-value/axis.top*(box.bottom-box.top);
-  node(svg,'text',{x:box.left,y:17},`似然 L(p)${axis.exponent===0?'':`  (× 10${superscript(axis.exponent)})`}`);
+  node(svg,'text',{x:box.left,y:17},relative?'相对似然':`似然 L(p)${axis.exponent===0?'':`  (× 10${superscript(axis.exponent)})`}`);
   axis.ticks.forEach(value=>{line(svg,box.left,y(value),box.right,y(value));node(svg,'text',{x:box.left-10,y:y(value)+5,'text-anchor':'end'},String(value));});
   const ticks=w<450?[0,.25,.5,.75,1]:[0,.2,.4,.6,.8,1];
   ticks.forEach(p=>{line(svg,x(p),box.bottom,x(p),box.bottom+5,{stroke:'#9bacbb'});node(svg,'text',{x:x(p),y:box.bottom+23,'text-anchor':'middle'},String(p));});
@@ -136,10 +149,16 @@ function draw(){
   const value=valueAt(state.p);
   line(svg,x(state.p),y(value),x(state.p),box.bottom,{stroke:'#a32e2e','stroke-width':1.5});
   node(svg,'circle',{cx:x(state.p),cy:y(value),r:6,fill:'#a32e2e',stroke:'#fff','stroke-width':1.5});
-  // Parameter and raw likelihood also appear below the chart, avoiding overlapping annotations.
-  svg.setAttribute('aria-label',`似然曲线，纵轴为 L(p)，线性刻度${axis.exponent===0?'':`乘以 10 的 ${axis.exponent} 次方`}。当前 p=${fixed(state.p)}，L(p)=${formatLikelihood(logLikelihood(state.p,state.n,state.k))}。${state.revealed?'最大值在 p='+fixed(peak)+'。':''}`);
+  // The value below the chart uses the same display mode as the y axis.
+  const quantity=relative?'相对似然':'L(p)';
+  const candidateLog=relative?relativeLogLikelihood(state.p,state.n,state.k):logLikelihood(state.p,state.n,state.k);
+  svg.setAttribute('aria-label',`似然曲线，纵轴为 ${quantity}，线性刻度${axis.exponent===0?'':`乘以 10 的 ${axis.exponent} 次方`}。当前 p=${fixed(state.p)}，${quantity}=${formatLikelihood(candidateLog)}。${state.revealed?'最大值在 p='+fixed(peak)+'。':''}`);
 }
 function render(){
+  const relative=state.scale==='relative';
+  $('scale-raw').setAttribute('aria-pressed',String(!relative));
+  $('scale-relative').setAttribute('aria-pressed',String(relative));
+  $('scale-note').textContent=relative?'纵轴显示 L(p) / max L(p)，最高点为 1。':'纵轴显示原始似然 L(p)，刻度随数据自动调整。';
   $('reveal').disabled=!state.valid;
   $('preset-small').setAttribute('aria-pressed',String(state.valid&&state.n===10&&state.k===8));
   $('preset-large').setAttribute('aria-pressed',String(state.valid&&state.n===100&&state.k===80));
@@ -148,7 +167,8 @@ function render(){
     $('success-strip').style.width=`${100*state.k/state.n}%`;
     $('sample').textContent=sampleSummary(state.n,state.k);
     $('formula').innerHTML=`<math aria-label="似然等于 p 的 ${state.k} 次方乘以一减 p 的 ${state.n-state.k} 次方"><mi>L</mi><mo>(</mo><mi>p</mi><mo>)</mo><mo>=</mo><msup><mi>p</mi><mn>${state.k}</mn></msup><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo>)</mo></mrow><mn>${state.n-state.k}</mn></msup></math>`;
-    $('likelihood-value').textContent=`L(p) = ${formatLikelihood(logLikelihood(state.p,state.n,state.k))}`;
+    const candidateLog=relative?relativeLogLikelihood(state.p,state.n,state.k):logLikelihood(state.p,state.n,state.k);
+    $('likelihood-value').textContent=`${relative?'相对似然':'L(p)'} = ${formatLikelihood(candidateLog)}`;
   }else{
     $('counts').textContent='请检查输入';$('success-strip').style.width='0%';$('sample').textContent='';$('formula').textContent='';$('likelihood-value').textContent='';
   }
@@ -176,6 +196,7 @@ $('candidate-number').addEventListener('input',()=>readInputs(false));
 $('candidate-slider').addEventListener('input',()=>{$('candidate-number').value=$('candidate-slider').value;readInputs(false);});
 $('preset-small').addEventListener('click',()=>preset(10,8));
 $('preset-large').addEventListener('click',()=>preset(100,80));
+[['scale-raw','raw'],['scale-relative','relative']].forEach(([id,scale])=>$(id).addEventListener('click',()=>{state.scale=scale;render();}));
 $('reveal').addEventListener('click',()=>{if(state.valid){state.revealed=!state.revealed;render();}});
 new ResizeObserver(draw).observe($('chart'));
 render();
