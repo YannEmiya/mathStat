@@ -11,6 +11,7 @@
 - `clt.html`：[大样本正态近似](https://yannemiya.github.io/mathStat/clt.html)。
 - `likelihood.html`：[两点分布的极大似然估计](https://yannemiya.github.io/mathStat/likelihood.html)。
 - `estimators.html`：[估计量的比较](https://yannemiya.github.io/mathStat/estimators.html)。
+- `ci.html`：[置信区间与重复抽样](https://yannemiya.github.io/mathStat/ci.html)。
 
 ## 经验分布函数与总体分布函数
 
@@ -46,6 +47,15 @@
 - 同一组样本同时用于三种估计，直方图采用相同横纵尺度。理论期望、方差与模拟数值的对照默认收起。
 - 页面可离线打开，不依赖外部脚本或网络服务。
 
+## 置信区间与重复抽样
+
+- 固定正态总体 `N(10, 2²)`，默认每组 n=25、置信水平 95%、σ 已知。
+- “先看一个区间”展示观测值、样本均值和对应的均值置信区间，计算过程默认收起。
+- “再看重复抽样”支持逐组、自动及批量追加，累计最多 10000 组。图中显示最近 30 组，累计结果按全部抽样计算；点击一条区间可回看相应样本。
+- n 可调为 2–500，置信水平可选 90%、95%、99%；可切换 σ 已知的正态区间与 σ 未知的 t 区间。
+- 更改置信水平或计算方法时保留同一批样本；更改 n 时清空旧结果并重新抽样。
+- 页面可离线打开，不依赖外部脚本或网络服务。
+
 ## GitHub Pages
 
 仓库中只有可公开的静态网页及说明，不需要构建步骤。GitHub Pages 已启用，
@@ -57,7 +67,8 @@
 `ecdf.html` 对应备课工作文件 `../interact/经验分布函数.html`，
 `clt.html` 对应 `../interact/大样本近似.html`，
 `likelihood.html` 对应 `../interact/极大似然估计.html`，
-`estimators.html` 对应 `../interact/估计量的比较.html`。网页版另有返回索引的导航；
+`estimators.html` 对应 `../interact/估计量的比较.html`，
+`ci.html` 对应 `../interact/置信区间.html`。网页版另有返回索引的导航；
 修改演示后，应同步更新对应的本地版和网页版正文与脚本，再检查并发布。
 演示页不标注课件章节号。新增演示时在 `index.html` 的列表中添加链接。
 不要把教材、点名册或其他备课资料加入此仓库。

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>置信区间与重复抽样</title>
+<style>
+:root{--blue:#14406b;--red:#a32e2e;--ink:#223346;--muted:#596a78;--line:#dbe2e8;--pale:#f4f7fa;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--white);color:var(--ink);font:16px/1.6 "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif}main{max-width:1200px;margin:auto;padding:25px 28px 30px}h1{font-size:30px;line-height:1.3;color:var(--blue);margin:0 0 8px}h2{font-size:20px;line-height:1.4;margin:0;color:var(--blue)}p{margin:0}.lead,.muted{color:var(--muted)}.lead{margin-bottom:20px}.model{font-size:14px;white-space:nowrap}.heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+button,input,select{font:inherit;color:var(--ink)}button,select,input[type=number]{background:var(--white);border:1px solid #aebcc9;border-radius:4px;min-height:42px;padding:7px 12px}button{cursor:pointer;touch-action:manipulation}button:hover:not(:disabled){border-color:var(--blue);background:#edf3f8}button.primary{background:var(--blue);color:var(--white);border-color:var(--blue)}button.primary:hover:not(:disabled){background:#205583}button:disabled{opacity:.45;cursor:default}:focus-visible{outline:3px solid #498dcc;outline-offset:3px}input[type=number]{width:90px;font-variant-numeric:tabular-nums}select{max-width:100%}.controls{display:flex;flex-wrap:wrap;align-items:end;gap:15px 25px;padding:14px 18px;background:var(--pale);border-radius:5px}.field{display:grid;gap:4px}.field label{font-size:14px;font-weight:600}.control-note{font-size:14px;color:var(--muted);margin-left:auto;max-width:255px}.notice{min-height:26px;font-size:14px;color:var(--muted);margin:6px 0 9px}.notice.error{color:var(--red)}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:18px}.tabs button{padding:9px 0 10px;min-height:44px;background:none;border:0;border-radius:0;font-size:18px;color:var(--muted);border-bottom:3px solid transparent}.tabs button[aria-selected=true]{border-bottom-color:var(--blue);color:var(--blue);font-weight:600}.tabs button:hover:not(:disabled){background:none}.panel-head{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}.panel-head p{font-size:14px;color:var(--muted);margin-top:3px}.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:13px 0 8px}.actions .batch{display:flex;align-items:center;gap:7px}.actions .batch input{width:88px}.actions .reset{margin-left:auto;color:var(--muted)}
+.chart{display:block;width:100%;overflow:visible}.chart text{font:14px "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;fill:var(--muted)}#sample-chart{height:305px}#interval-chart{height:430px}.chart .strong{fill:var(--blue);font-weight:600}.chart .truth{fill:var(--ink);font-weight:600}.chart .miss-label{fill:var(--red)}.chart .interval-row{cursor:pointer}.chart .interval-row:hover .row-bg,.chart .interval-row:focus .row-bg{fill:#eaf1f7}.chart .interval-row:focus{outline:none}.readout{display:flex;gap:10px 26px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding:14px 0;font-variant-numeric:tabular-nums}.readout .result{font-size:21px;color:var(--blue)}.readout .status{font-size:15px}.miss{color:var(--red)!important}.hit{color:var(--blue)}.takeaway{border-left:3px solid var(--blue);padding:9px 14px;background:var(--pale);font-size:16px}.takeaway strong{color:var(--blue)}
+.repeat-layout{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:28px;align-items:start}.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:14px;color:var(--muted);margin:9px 0 0}.legend span{display:inline-flex;align-items:center;gap:7px}.key{width:24px;height:0;border-top:3px solid var(--blue)}.key.miss-key{border-color:var(--red);border-top-style:dashed}.key.dot{width:7px;height:7px;border:0;background:var(--blue);border-radius:50%}.summary{padding:20px;background:var(--pale);margin-top:18px}.summary-label{font-size:14px;color:var(--muted)}.rate{font-size:42px;line-height:1.3;color:var(--blue);font-weight:650;font-variant-numeric:tabular-nums;margin:3px 0}.target{font-size:14px;color:var(--muted);padding-bottom:15px;border-bottom:1px solid var(--line)}dl{margin:12px 0}dl>div{display:flex;justify-content:space-between;gap:10px;margin:7px 0}dt{color:var(--muted)}dd{margin:0;font-variant-numeric:tabular-nums}#average-width{font-size:14px;padding-top:10px;border-top:1px solid var(--line)}.summary-note{font-size:14px;color:var(--muted);margin-top:13px}.chart-note{font-size:13px;color:var(--muted);margin:1px 0 13px}
+details{margin-top:19px;padding-top:13px;border-top:1px solid var(--line);font-size:15px}summary{cursor:pointer;color:var(--blue);width:fit-content}details p{margin-top:9px}.formula{font-size:22px;color:var(--blue);margin:14px 0;overflow-x:auto;padding:3px 0}math{font-family:"STIX Two Math","Cambria Math",serif}.formula math{font-size:23px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px}.detail-grid h3{font-size:16px;margin:15px 0 0}.sample-stats{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}[hidden]{display:none!important}noscript{display:block;color:var(--red)}
+.formula{display:flex;flex-wrap:wrap;gap:15px 36px}.formula .bound{display:block}
+@media(max-width:760px){main{padding:20px 16px}h1{font-size:26px}.heading{gap:4px}.lead{margin-bottom:14px}.controls{gap:12px 18px;padding:12px}.control-note{max-width:none;width:100%;margin:0}.repeat-layout{grid-template-columns:1fr;gap:0}.summary{margin:3px 0 16px;padding:15px 18px;display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.summary dl{grid-column:2;grid-row:1/4;margin:0}.target{border:0;padding:0}.summary-note{grid-column:1/-1;margin-top:7px}.summary #average-width{grid-column:1/-1;margin-top:12px}.rate{font-size:33px}.tabs{gap:22px}.tabs button{font-size:17px}#sample-chart{height:290px}#interval-chart{height:440px}.detail-grid{grid-template-columns:1fr;gap:0}.actions .reset{margin-left:0}.readout{gap:8px 18px}.readout .result{font-size:19px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+.site-nav{font-size:14px;margin:0 0 12px}.site-nav a{color:var(--blue);text-underline-offset:4px}
+</style>
+</head>
+<body><main>
+<nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
+<div class="heading"><h1>置信区间与重复抽样</h1><p class="model muted">模拟总体：N(μ, σ²)，μ = 10，σ = 2</p></div>
+<p class="lead">真值不动，样本在变。由样本算出的区间，能否覆盖总体均值？</p>
+<section class="controls" aria-label="抽样与区间设置">
+<div class="field"><label for="sample-size">每组样本量 n</label><input id="sample-size" type="number" min="2" max="500" step="1" value="25" required></div>
+<div class="field"><label for="confidence">置信水平 1 − α</label><select id="confidence"><option value="0.90">90%</option><option value="0.95" selected>95%</option><option value="0.99">99%</option></select></div>
+<div class="field"><label for="method">构造区间时</label><select id="method"><option value="z">σ 已知：用正态分位数</option><option value="t">σ 未知：用 t 分位数</option></select></div>
+<p class="control-note">更改置信水平或计算方法，<br>保留同一批样本进行比较。</p>
+</section>
+<p id="notice" class="notice" role="status" aria-live="polite"></p>
+<div class="tabs" role="tablist" aria-label="演示步骤">
+<button id="tab-single" role="tab" aria-selected="true" aria-controls="panel-single" type="button">先看一个区间</button>
+<button id="tab-repeat" role="tab" aria-selected="false" aria-controls="panel-repeat" tabindex="-1" type="button">再看重复抽样</button>
+</div>
+<section id="panel-single" role="tabpanel" aria-labelledby="tab-single">
+<div class="panel-head"><div><h2 id="sample-title">一组样本，一个区间</h2><p>上方每个点是一个观测值；下方用这组数据估计总体均值。</p></div><button id="draw-single" class="primary" type="button">再抽一组</button></div>
+<svg id="sample-chart" class="chart" role="img" aria-label="样本观测值与由它们构造的均值置信区间"></svg>
+<div class="readout"><p class="result" id="single-interval"></p><p id="single-width"></p><p id="single-hit" class="status"></p></div>
+<p class="takeaway">这条区间估计的是<strong>总体均值 μ</strong>，不是个体观测值的取值范围。</p>
+<details><summary>这条区间怎样算出来？</summary><div id="single-formula" class="formula"></div><p id="substitution"></p><p class="sample-stats" id="single-stats"></p></details>
+</section>
+<section id="panel-repeat" role="tabpanel" aria-labelledby="tab-repeat" hidden>
+<div class="panel-head"><div><h2>每抽一组样本，就画一条区间</h2><p>竖虚线是真值 μ = 10；每条横线对应一次独立抽样。</p></div></div>
+<div class="actions">
+<button id="draw-one" class="primary" type="button">抽一组</button><button id="auto" type="button" aria-pressed="false">自动抽样</button>
+<div class="batch"><label for="batch-size">追加</label><input id="batch-size" type="number" min="1" max="10000" step="1" value="100" required><span>组</span><button id="draw-batch" type="button">开始</button></div>
+<button id="clear" class="reset" type="button">清空</button>
+</div>
+<div class="repeat-layout"><div>
+<div class="legend"><span><i class="key" aria-hidden="true"></i>覆盖真值</span><span><i class="key miss-key" aria-hidden="true"></i>未覆盖真值</span><span><i class="key dot" aria-hidden="true"></i>样本均值</span></div>
+<svg id="interval-chart" class="chart" role="group" aria-label="各次抽样的均值置信区间，选择一行可查看对应样本"></svg>
+<p id="chart-note" class="chart-note"></p>
+</div><aside class="summary" aria-label="全部抽样的累计结果">
+<p class="summary-label">累计覆盖比例</p><p class="rate" id="coverage">—</p><p class="target" id="target">置信水平 95%</p>
+<dl><div><dt>已抽样</dt><dd id="total">0 组</dd></div><div><dt>覆盖</dt><dd id="hits">0 组</dd></div><div><dt>未覆盖</dt><dd id="misses">0 组</dd></div></dl>
+<p id="average-width">平均区间长度：—</p><p class="summary-note">有限次抽样的覆盖比例会波动，不必恰好等于置信水平。</p>
+</aside></div>
+<p class="takeaway" id="repeat-takeaway"></p>
+</section>
+<details><summary>公式与课堂观察</summary>
+<div id="general-formula" class="formula"></div>
+<p id="method-explanation"></p>
+<div class="detail-grid"><div><h3>试着改变设置</h3><p>同一批样本：从 90% 切到 99%，观察区间怎样变长，以及哪些区间开始覆盖真值。</p><p>保持置信水平不变：把 n 从 25 改为 100，重新抽样，观察区间长度。σ 已知时，区间长度恰好减半。</p></div><div><h3>95% 描述的是什么？</h3><p>按同一个规则反复抽样、构造区间，长期来看，约 95% 的区间覆盖固定的真值。</p><p>某组数据一旦确定，它给出的数值区间要么覆盖真值，要么不覆盖；随机变化的是区间，不是真值。</p></div></div>
+<p class="muted">模拟程序用 μ = 10、σ = 2 生成独立正态观测。选择“σ 未知”时，区间只用样本标准差 s，不把总体 σ 代入计算。真值仅用于检验覆盖情况。</p>
+</details>
+<noscript>请在浏览器中启用 JavaScript 以使用此演示。</noscript>
+</main>
+<script>
+'use strict';
+// Offline, exact normal model. Critical values use upper-tail textbook notation.
+// No small-df normal approximation: invert the Student t CDF via incomplete beta.
+const MU=10, SIGMA=2, LIMIT=10000, VISIBLE=30;
+const Z_VALUES={'0.9':1.6448536269514722,'0.95':1.959963984540054,'0.99':2.5758293035489004};
+function logGamma(z){
+  const c=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(z<.5)return Math.log(Math.PI)-Math.log(Math.sin(Math.PI*z))-logGamma(1-z);
+  z-=1;let x=.99999999999980993;for(let i=0;i<c.length;i++)x+=c[i]/(z+i+1);
+  const t=z+7.5;return .5*Math.log(2*Math.PI)+(z+.5)*Math.log(t)-t+Math.log(x);
+}
+function betaFraction(a,b,x){
+  const tiny=1e-300,eps=3e-14;let c=1,d=1-(a+b)*x/(a+1);
+  if(Math.abs(d)<tiny)d=tiny;d=1/d;let h=d;
+  for(let m=1;m<=300;m++){
+    let aa=m*(b-m)*x/((a+2*m-1)*(a+2*m));
+    d=1+aa*d;if(Math.abs(d)<tiny)d=tiny;c=1+aa/c;if(Math.abs(c)<tiny)c=tiny;d=1/d;h*=d*c;
+    aa=-(a+m)*(a+b+m)*x/((a+2*m)*(a+2*m+1));
+    d=1+aa*d;if(Math.abs(d)<tiny)d=tiny;c=1+aa/c;if(Math.abs(c)<tiny)c=tiny;d=1/d;const delta=d*c;h*=delta;
+    if(Math.abs(delta-1)<eps)return h;
+  }
+  throw new Error('不完全 beta 函数未收敛');
+}
+function regularizedBeta(x,a,b){
+  if(x<=0)return 0;if(x>=1)return 1;
+  const factor=Math.exp(logGamma(a+b)-logGamma(a)-logGamma(b)+a*Math.log(x)+b*Math.log1p(-x));
+  return x<(a+1)/(a+b+2)?factor*betaFraction(a,b,x)/a:1-factor*betaFraction(b,a,1-x)/b;
+}
+function tUpperTail(t,df){return .5*regularizedBeta(df/(df+t*t),df/2,.5);}
+function tCritical(confidence,df){
+  const target=(1-confidence)/2;let low=0,high=1;
+  while(tUpperTail(high,df)>target)high*=2;
+  for(let i=0;i<75;i++){const mid=(low+high)/2;if(tUpperTail(mid,df)>target)low=mid;else high=mid;}
+  return (low+high)/2;
+}
+function generateSample(n,rng=Math.random){
+  const data=[];let mean=0,m2=0;
+  while(data.length<n){
+    const radius=Math.sqrt(-2*Math.log(1-rng())),angle=2*Math.PI*rng();
+    for(const z of [radius*Math.cos(angle),radius*Math.sin(angle)]){
+      if(data.length===n)break;const value=MU+SIGMA*z;data.push(value);
+      const delta=value-mean;mean+=delta/data.length;m2+=delta*(value-mean);
+    }
+  }
+  return {data,mean,s:Math.sqrt(m2/(n-1)),n};
+}
+function intervalFor(sample,method,critical){
+  const se=(method==='z'?SIGMA:sample.s)/Math.sqrt(sample.n),half=critical*se;
+  const lower=sample.mean-half,upper=sample.mean+half;
+  return {lower,upper,width:2*half,se,hit:lower<=MU&&MU<=upper};
+}
+// BEGIN UI
+const $=id=>document.getElementById(id);
+const state={n:25,confidence:.95,method:'z',critical:Z_VALUES['0.95'],samples:[],selected:0,tab:'single',timer:null,valid:true};
+const fmt=(x,d=3)=>x.toFixed(d),percent=x=>(100*x).toFixed(1)+'%';
+function say(text,error=false){$('notice').textContent=text;$('notice').classList.toggle('error',error);}
+function svgNode(svg,name,attrs={},text){const el=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [key,value] of Object.entries(attrs))el.setAttribute(key,value);if(text!==undefined)el.textContent=text;svg.appendChild(el);return el;}
+function line(svg,x1,y1,x2,y2,attrs={}){return svgNode(svg,'line',{x1,y1,x2,y2,stroke:'#dbe2e8',...attrs});}
+function text(svg,x,y,value,attrs={}){return svgNode(svg,'text',{x,y,...attrs},value);}
+function setupChart(id){const svg=$(id),w=Math.max(280,svg.clientWidth),h=svg.clientHeight;svg.replaceChildren();svg.setAttribute('viewBox',`0 0 ${w} ${h}`);return {svg,w,h};}
+function extent(intervals,baseHalf,points=[]){
+  let half=baseHalf;
+  for(const ci of intervals)half=Math.max(half,1.1*Math.abs(ci.lower-MU),1.1*Math.abs(ci.upper-MU));
+  for(const value of points)half=Math.max(half,1.1*Math.abs(value-MU));
+  return {low:MU-half,high:MU+half,expanded:half>baseHalf};
+}
+function axis(svg,w,y,domain,left=55,right=24){
+  const x=value=>left+(value-domain.low)/(domain.high-domain.low)*(w-left-right);
+  line(svg,left,y,w-right,y,{stroke:'#9bacbb'});
+  for(let i=0;i<=4;i++){const value=domain.low+i*(domain.high-domain.low)/4;line(svg,x(value),y,x(value),y+5,{stroke:'#9bacbb'});text(svg,x(value),y+23,fmt(value,Math.abs(value)<100?1:0),{'text-anchor':'middle'});}
+  return x;
+}
+function drawInterval(svg,sample,ci,x,y,selected=false){
+  const color=ci.hit?'#14406b':'#a32e2e',attrs={stroke:color,'stroke-width':selected?3.5:2.3};
+  line(svg,x(ci.lower),y,x(ci.upper),y,{...attrs,...(!ci.hit?{'stroke-dasharray':'5 3'}:{})});
+  for(const value of [ci.lower,ci.upper])line(svg,x(value),y-4,x(value),y+4,attrs);
+  svgNode(svg,'circle',{cx:x(sample.mean),cy:y,r:selected?5:3.2,fill:color});
+}
+function drawSingle(){
+  const {svg,w,h}=setupChart('sample-chart'),sample=state.samples[state.selected];
+  if(!sample){text(svg,w/2,h/2,'点击“再抽一组”，开始一次抽样。',{'text-anchor':'middle'});return;}
+  const ci=intervalFor(sample,state.method,state.critical),domain=extent([ci],8,sample.data),x=axis(svg,w,h-43,domain,w<500?22:40,22);
+  const sampleY=85,ciY=h-97;
+  line(svg,x(MU),35,x(MU),h-43,{stroke:'#596a78','stroke-dasharray':'6 5','stroke-width':1.5});
+  text(svg,x(MU)+7,23,'真值 μ = 10',{class:'truth'});
+  text(svg,8,47,`观测值（${sample.n} 个）`);
+  // Deterministic vertical jitter is decorative; horizontal position is the value.
+  sample.data.forEach((value,i)=>svgNode(svg,'circle',{cx:x(value),cy:sampleY+22*Math.sin(i*2.399963),r:sample.n>100?2.3:3.8,fill:'#7c98b0',opacity:.78}));
+  text(svg,8,ciY-29,`${Math.round(state.confidence*100)}% 均值置信区间`,{class:'strong'});
+  drawInterval(svg,sample,ci,x,ciY,true);
+  text(svg,x(sample.mean),ciY+27,`x̄ = ${fmt(sample.mean)}`,{'text-anchor':'middle',class:'strong'});
+  text(svg,w/2,h-4,'观测值 / 总体均值的候选值',{'text-anchor':'middle'});
+  svg.setAttribute('aria-label',`第 ${sample.id} 组，${sample.n} 个观测值。样本均值 ${fmt(sample.mean)}，区间从 ${fmt(ci.lower)} 到 ${fmt(ci.upper)}，${ci.hit?'覆盖':'未覆盖'}真值 10。`);
+}
+function drawRepeated(){
+  const {svg,w,h}=setupChart('interval-chart'),all=state.samples,recent=all.slice(-VISIBLE);
+  const intervals=recent.map(s=>intervalFor(s,state.method,state.critical)),domain=extent(intervals,4),left=w<450?36:53;
+  const x=axis(svg,w,h-44,domain,left,20),top=47,bottom=h-60;
+  line(svg,x(MU),31,x(MU),h-44,{stroke:'#596a78','stroke-dasharray':'6 5','stroke-width':1.5});
+  text(svg,x(MU),21,'真值 μ = 10',{'text-anchor':'middle',class:'truth'});text(svg,4,21,'组次');
+  text(svg,(left+w-20)/2,h-4,'总体均值的候选值',{'text-anchor':'middle'});
+  const spacing=(bottom-top)/(VISIBLE-1);
+  recent.forEach((sample,i)=>{
+    const ci=intervals[i],y=top+i*spacing;
+    const group=svgNode(svg,'g',{class:'interval-row',role:'button',tabindex:'0','aria-label':`第 ${sample.id} 组，区间 ${fmt(ci.lower)} 到 ${fmt(ci.upper)}，${ci.hit?'覆盖':'未覆盖'}真值。查看样本。`});
+    svgNode(group,'rect',{x:0,y:y-spacing/2,width:w,height:spacing,fill:'transparent',class:'row-bg'});
+    // Label selected positions; every row retains a keyboard/screen-reader label.
+    if(recent.length<=10||i===0||i===recent.length-1||sample.id%5===0)text(group,left-8,y+4,sample.id,{'text-anchor':'end',...(ci.hit?{}:{class:'miss-label'})});
+    drawInterval(group,sample,ci,x,y);
+    const inspect=()=>{stopAuto();state.selected=all.indexOf(sample);setTab('single');say(`正在查看第 ${sample.id} 组样本。`);$('tab-single').focus();};
+    group.addEventListener('click',inspect);group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect();}});
+  });
+  if(!all.length)text(svg,w/2,h/2,'每次抽样后，这里增加一条区间。',{'text-anchor':'middle'});
+  $('chart-note').textContent=(all.length>VISIBLE?`图中仅显示最近 ${VISIBLE} 组；累计结果统计全部 ${all.length} 组。`:'点击一条区间，可查看产生它的样本。')+(domain.expanded?' 横轴已扩展，以显示完整区间。':'');
+}
+function formulaMarkup(observed=false){
+  const mean=`<mover><mi>${observed?'x':'X'}</mi><mo>¯</mo></mover>`,sd=state.method==='z'?'<mi>σ</mi>':`<mi>${observed?'s':'S'}</mi>`;
+  const q=state.method==='z'?'<msub><mi>u</mi><mrow><mi>α</mi><mo>/</mo><mn>2</mn></mrow></msub>':'<msub><mi>t</mi><mrow><mi>α</mi><mo>/</mo><mn>2</mn></mrow></msub><mrow><mo>(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow>';
+  const margin=q+`<mfrac>${sd}<msqrt><mi>n</mi></msqrt></mfrac>`;
+  return `<span class="bound"><math aria-label="置信下限等于样本均值减去临界值乘以标准误差"><munder><mi>μ</mi><mo>_</mo></munder><mo>=</mo>${mean}<mo>−</mo>${margin}</math></span><span class="bound"><math aria-label="置信上限等于样本均值加上临界值乘以标准误差"><mover><mi>μ</mi><mo>¯</mo></mover><mo>=</mo>${mean}<mo>+</mo>${margin}</math></span>`;
+}
+function render(){
+  const all=state.samples,sample=all[state.selected];let hits=0,width=0;
+  for(const s of all){const ci=intervalFor(s,state.method,state.critical);hits+=Number(ci.hit);width+=ci.width;}
+  $('coverage').textContent=all.length?percent(hits/all.length):'—';$('target').textContent=`置信水平 ${Math.round(state.confidence*100)}%`;
+  $('total').textContent=`${all.length.toLocaleString()} 组`;$('hits').textContent=`${hits.toLocaleString()} 组`;$('misses').textContent=`${(all.length-hits).toLocaleString()} 组`;
+  $('average-width').textContent=`平均区间长度：${all.length?fmt(width/all.length):'—'}`;
+  $('repeat-takeaway').innerHTML=`按同一规则反复抽样，长期来看，约 <strong>${Math.round(state.confidence*100)}% 的区间覆盖真值</strong>。某组数据确定后，它给出的区间要么覆盖，要么不覆盖。`;
+  $('general-formula').innerHTML=formulaMarkup();$('single-formula').innerHTML=formulaMarkup(true);
+  $('method-explanation').textContent=state.method==='z'?`σ 已知，使用标准正态分布的上侧分位数；当前临界值为 ${fmt(state.critical,4)}，标准误差为 σ/√n。正态总体下，这是精确的置信区间。`:`σ 未知，使用 t 分布的上侧分位数，自由度 n − 1 = ${state.n-1}；当前临界值为 ${fmt(state.critical,4)}。S² 的分母为 n − 1，标准误差用 S/√n。正态总体下，这是精确的置信区间。`;
+  if(sample){
+    const ci=intervalFor(sample,state.method,state.critical);
+    $('sample-title').textContent=`第 ${sample.id} 组样本 → 一个区间`;
+    $('single-interval').textContent=`区间 [${fmt(ci.lower)}, ${fmt(ci.upper)}]`;$('single-width').textContent=`长度 ${fmt(ci.width)}`;
+    $('single-hit').textContent=ci.hit?'✓ 覆盖真值 μ = 10':'× 未覆盖真值 μ = 10';$('single-hit').className='status '+(ci.hit?'hit':'miss');
+    $('substitution').textContent=`${fmt(sample.mean)} ± ${fmt(state.critical,4)} × ${fmt(state.method==='z'?SIGMA:sample.s)} / √${sample.n} = [${fmt(ci.lower)}, ${fmt(ci.upper)}]（显示值经四舍五入）。`;
+    $('single-stats').textContent=`本组样本：n = ${sample.n}，x̄ = ${fmt(sample.mean)}，s = ${fmt(sample.s)}。`;
+  }else{
+    $('sample-title').textContent='一组样本，一个区间';for(const id of ['single-interval','single-width','single-hit','substitution','single-stats'])$(id).textContent='';
+  }
+  const locked=!state.valid||all.length>=LIMIT;
+  for(const id of ['draw-single','draw-one','auto'])$(id).disabled=locked;
+  $('draw-batch').disabled=locked||!validBatch();
+  if(state.tab==='single')drawSingle();else drawRepeated();
+}
+function addSamples(count){
+  if(!state.valid)return;const remaining=LIMIT-state.samples.length,take=Math.min(count,remaining);
+  for(let i=0;i<take;i++){const s=generateSample(state.n);s.id=state.samples.length+1;state.samples.push(s);}
+  // Older moments count towards cumulative coverage; retain raw data for visible rows.
+  for(let i=Math.max(0,state.samples.length-take-VISIBLE);i<state.samples.length-VISIBLE;i++)state.samples[i].data=null;
+  state.selected=Math.max(0,state.samples.length-1);render();
+  if(state.samples.length>=LIMIT){stopAuto();say(`已累计 ${LIMIT.toLocaleString()} 组；可切换设置比较，或清空后重新抽样。`);}
+}
+function stopAuto(){if(state.timer!==null){clearInterval(state.timer);state.timer=null;}$('auto').textContent='自动抽样';$('auto').setAttribute('aria-pressed','false');}
+function setTab(tab){
+  stopAuto();state.tab=tab;
+  for(const name of ['single','repeat']){const selected=name===tab;$('tab-'+name).setAttribute('aria-selected',String(selected));$('tab-'+name).tabIndex=selected?0:-1;$('panel-'+name).hidden=!selected;}
+  render();
+}
+function validBatch(){const input=$('batch-size'),n=Number(input.value);return input.value!==''&&Number.isInteger(n)&&n>=1&&n<=LIMIT;}
+function changeSettings(){
+  stopAuto();const input=$('sample-size'),n=Number(input.value),valid=input.value!==''&&Number.isInteger(n)&&n>=2&&n<=500;
+  state.valid=valid;input.setAttribute('aria-invalid',String(!valid));
+  if(!valid){say('每组样本量 n 请填写 2–500 的整数。',true);render();return;}
+  const changed=n!==state.n;state.n=n;state.confidence=Number($('confidence').value);state.method=$('method').value;
+  state.critical=state.method==='z'?Z_VALUES[String(state.confidence)]:tCritical(state.confidence,n-1);
+  if(changed){state.samples=[];state.selected=0;addSamples(1);say('样本量已改变：已清空旧结果，并重新抽取一组样本。');}
+  else{say('保留原样本，已按当前设置重新计算所有区间与覆盖比例。');render();}
+}
+$('draw-single').addEventListener('click',()=>{addSamples(1);say('从同一总体重新独立抽样；真值 μ 始终为 10。');});
+$('draw-one').addEventListener('click',()=>{stopAuto();addSamples(1);});
+$('draw-batch').addEventListener('click',()=>{if(!validBatch())return;stopAuto();addSamples(Number($('batch-size').value));});
+$('auto').addEventListener('click',()=>{
+  if(state.timer!==null){stopAuto();return;}if(!state.valid||state.samples.length>=LIMIT)return;
+  $('auto').textContent='暂停抽样';$('auto').setAttribute('aria-pressed','true');state.timer=setInterval(()=>addSamples(1),180);
+});
+$('clear').addEventListener('click',()=>{stopAuto();state.samples=[];state.selected=0;say('已清空抽样结果，设置保持不变。');render();});
+for(const id of ['sample-size','confidence','method'])$(id).addEventListener(id==='sample-size'?'input':'change',changeSettings);
+$('batch-size').addEventListener('input',()=>{const ok=validBatch();$('batch-size').setAttribute('aria-invalid',String(!ok));say(ok?'':`一次追加的组数请填写 1–${LIMIT} 的整数。`,!ok);render();});
+for(const name of ['single','repeat']){
+  $('tab-'+name).addEventListener('click',()=>setTab(name));
+  $('tab-'+name).addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?'single':e.key==='End'?'repeat':name==='single'?'repeat':'single';setTab(next);$('tab-'+next).focus();}});
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAuto();});
+new ResizeObserver(()=>{if(state.tab==='single')drawSingle();else drawRepeated();}).observe(document.querySelector('main'));
+addSamples(1);say('先抽几组观察区间的变化，再切到“再看重复抽样”。');
+</script>
+</body></html>
