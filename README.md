@@ -12,6 +12,7 @@
 - `likelihood.html`：[两点分布的极大似然估计](https://yannemiya.github.io/mathStat/likelihood.html)。
 - `estimators.html`：[估计量的比较](https://yannemiya.github.io/mathStat/estimators.html)。
 - `ci.html`：[置信区间与重复抽样](https://yannemiya.github.io/mathStat/ci.html)。
+- `power.html`：[两类错误与检验功效](https://yannemiya.github.io/mathStat/power.html)。
 
 ## 经验分布函数与总体分布函数
 
@@ -56,6 +57,14 @@
 - 更改置信水平或计算方法时保留同一批样本；更改 n 时清空旧结果并重新抽样。
 - 页面可离线打开，不依赖外部脚本或网络服务。
 
+## 两类错误与检验功效
+
+- 以总体 `N(μ, 200²)` 为模型，检验 `H₀: μ=650` 与 `H₁: μ≠650`。
+- 上图固定真实均值为 650，用两端红色阴影显示误拒概率 α；下图显示所选真实均值下的不拒绝概率，μ≠650 时即漏判概率 β。
+- 可调节真实均值 μ（400–900）、样本量 n（1–2000）和显著性水平 α（0.01、0.05、0.10）；上下两图采用相同的横纵刻度和拒绝域边界，同时显示检验功效 `1−β`。
+- 默认 n=70、μ=670、α=0.05，漏判概率约 86.68%，功效约 13.32%。μ=650 时改为显示正确不拒绝与误拒概率。
+- 公式默认收起，页面可离线打开。“返回索引”可回到演示列表。
+
 ## GitHub Pages
 
 仓库中只有可公开的静态网页及说明，不需要构建步骤。GitHub Pages 已启用，
@@ -68,7 +77,8 @@
 `clt.html` 对应 `../interact/大样本近似.html`，
 `likelihood.html` 对应 `../interact/极大似然估计.html`，
 `estimators.html` 对应 `../interact/估计量的比较.html`，
-`ci.html` 对应 `../interact/置信区间.html`。网页版另有返回索引的导航；
+`ci.html` 对应 `../interact/置信区间.html`，
+`power.html` 对应 `../interact/两类错误与检验功效.html`。网页版另有返回索引的导航；
 修改演示后，应同步更新对应的本地版和网页版正文与脚本，再检查并发布。
 演示页不标注课件章节号。新增演示时在 `index.html` 的列表中添加链接。
 不要把教材、点名册或其他备课资料加入此仓库。

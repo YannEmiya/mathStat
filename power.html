@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="调节真实均值、样本量与显著性水平，观察正态均值检验的两类错误概率和检验功效。">
+<title>两类错误与检验功效</title>
+<style>
+:root{--blue:#14406b;--red:#a32e2e;--green:#28766b;--ink:#223346;--muted:#596a78;--line:#dbe2e8;--pale:#f4f7fa}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:#fff;font:16px/1.6 "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1140px;margin:auto;padding:22px 30px 28px}
+h1{color:var(--blue);font-size:30px;line-height:1.3;margin:0 0 7px}
+p{margin:0}
+math{font-family:"STIX Two Math","Cambria Math",serif;font-size:1.12em}
+.lead{color:var(--muted);margin-bottom:9px}
+.model{font-size:15px;margin-bottom:17px}
+.model strong{color:var(--blue);font-weight:600}
+.controls{display:grid;grid-template-columns:1fr 1fr auto;gap:25px;padding:14px 18px;background:var(--pale);border-radius:5px;align-items:start}
+.field{min-width:0}
+.field-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+label{font-size:15px;font-weight:600}
+input,select,button{font:inherit;color:var(--ink)}
+input[type=number],select,button{border:1px solid #aebcc9;background:#fff;border-radius:4px;min-height:39px;padding:5px 10px}
+input[type=number]{width:95px;font-variant-numeric:tabular-nums}
+input[type=range]{display:block;width:100%;accent-color:var(--blue);margin:11px 0 0}
+select{min-width:112px}
+button{cursor:pointer}
+button:hover{border-color:var(--blue);background:#edf3f8}
+:focus-visible{outline:3px solid #498dcc;outline-offset:3px}
+[aria-invalid=true]{outline:2px solid var(--red);outline-offset:1px}
+.alpha-field{display:flex;align-items:center;gap:18px}
+.alpha-field .field-head{display:grid;gap:5px;margin:0}
+.alpha-field button{font-size:14px;white-space:nowrap;align-self:end}
+.notice{font-size:13px;color:var(--red);min-height:24px;padding-top:3px}
+.rule{display:flex;align-items:baseline;gap:8px 20px;flex-wrap:wrap;margin:0 0 12px;font-size:16px}
+.rule-label{color:var(--muted);font-size:14px}
+.rule strong{font-weight:600;color:var(--blue)}
+.plot-section{border-top:1px solid var(--line);padding:13px 0 7px}
+.plot-heading{display:flex;justify-content:space-between;gap:12px 30px;align-items:baseline}
+h2{font-size:19px;color:var(--blue);font-weight:600;line-height:1.4;margin:0}
+.plot-caption{font-size:14px;color:var(--muted);margin-top:3px}
+.metrics{display:flex;align-items:baseline;gap:8px 20px;flex-wrap:wrap;justify-content:flex-end;font-variant-numeric:tabular-nums}
+.metric{white-space:nowrap;font-size:15px}
+.metric strong{font-size:25px;line-height:1.2;margin-left:7px;font-weight:650}
+.error{color:var(--red)}
+.success{color:var(--green)}
+.neutral{color:var(--blue)}
+.chart{display:block;width:100%;height:198px;overflow:visible}
+.chart text{font:13px "Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;fill:var(--muted)}
+.chart .curve{fill:none;stroke:var(--blue);stroke-width:2.4;stroke-dasharray:7 4}
+.chart .alternative{stroke:var(--green)}
+.chart .axis{stroke:#8091a1;stroke-width:1}
+.chart .boundary{stroke:#718293;stroke-width:1.3;stroke-dasharray:4 4}
+.chart .center{stroke:#a2afba;stroke-width:1;stroke-dasharray:2 5}
+.chart .decision{font-size:12px}
+.chart .reject-label{fill:var(--red)}
+.chart-note{font-size:13px;color:var(--muted);margin:4px 0 12px}
+.conclusion{border-left:3px solid var(--blue);background:var(--pale);padding:9px 13px;font-size:15px}
+.conclusion strong{color:var(--blue)}
+details{border-top:1px solid var(--line);margin-top:17px;padding-top:12px;font-size:14px}
+summary{cursor:pointer;color:var(--blue);width:fit-content}
+details p{margin-top:10px}
+.formula{font-size:20px;overflow-x:auto;padding:4px 0}
+.source{color:var(--muted);font-size:13px}
+.site-nav{font-size:14px;margin:0 0 12px}
+.site-nav a{color:var(--blue);text-underline-offset:4px}
+noscript{display:block;color:var(--red);margin:15px 0}
+@media(max-width:820px){
+ main{padding:18px 20px 24px}
+ .controls{grid-template-columns:1fr 1fr;gap:17px 25px}
+ .alpha-field{grid-column:1/-1;justify-content:space-between;align-items:center}
+ .alpha-field .field-head{display:flex;align-items:center;gap:15px}
+ .alpha-field button{align-self:center}
+ .plot-heading{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .metrics{justify-content:flex-start}
+}
+@media(max-width:500px){
+ main{padding:16px 14px 22px}
+ h1{font-size:25px}
+ .lead{font-size:15px}
+ .model{font-size:14px}
+ .controls{grid-template-columns:1fr;gap:17px;padding:13px 14px}
+ .alpha-field{grid-column:auto;gap:10px;flex-wrap:wrap}
+ .alpha-field .field-head{gap:12px}
+ .alpha-field button{font-size:13px;padding:5px 8px}
+ .rule{font-size:15px;gap:3px 10px}
+ h2{font-size:18px}
+ .metric strong{font-size:23px}
+ .metrics{gap:5px 17px}
+ .chart{height:207px}
+ .conclusion{font-size:14px}
+}
+</style>
+</head>
+<body>
+<main>
+<nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
+<h1>两类错误与检验功效</h1>
+<p class="lead">每次抽取 n 个观测值，计算一个样本均值。下面两图展示这个样本均值在反复抽样中的分布。</p>
+<p class="model">合金拉伸强度 X ∼ N(μ, 200²)，单位为 MPa，总体标准差已知。检验 <strong>H₀：μ = 650，H₁：μ ≠ 650</strong>。</p>
+
+<form class="controls" id="controls" novalidate>
+ <div class="field">
+  <div class="field-head"><label for="mu">下图的真实均值 μ</label><input id="mu" type="number" min="400" max="900" step="0.1" value="670" inputmode="decimal" aria-describedby="notice"></div>
+  <input id="mu-range" type="range" min="400" max="900" step="0.1" value="670" aria-label="调节下图的真实均值">
+ </div>
+ <div class="field">
+  <div class="field-head"><label for="n">每组样本量 n</label><input id="n" type="number" min="1" max="2000" step="1" value="70" inputmode="numeric" aria-describedby="notice"></div>
+  <input id="n-range" type="range" min="1" max="2000" step="1" value="70" aria-label="调节每组样本量">
+ </div>
+ <div class="field alpha-field">
+  <div class="field-head"><label for="alpha">显著性水平 α</label><select id="alpha"><option value="0.01">0.01</option><option value="0.05" selected>0.05</option><option value="0.1">0.10</option></select></div>
+  <button id="reset" type="button">恢复教材设置</button>
+ </div>
+</form>
+<p id="notice" class="notice" role="status" aria-live="polite"></p>
+<div class="rule"><span class="rule-label">两种情形使用同一条检验规则</span><strong id="rule"></strong></div>
+
+<section class="plot-section" aria-labelledby="null-heading">
+ <div class="plot-heading">
+  <div><h2 id="null-heading">原假设成立：真实均值 μ = 650</h2><p class="plot-caption">两端红色阴影：原假设为真，却落入拒绝域。</p></div>
+  <div class="metrics"><p class="metric error">误拒概率 α<strong id="alpha-value"></strong></p></div>
+ </div>
+ <svg id="null-chart" class="chart" role="img" aria-labelledby="null-chart-title null-chart-desc"></svg>
+</section>
+
+<section class="plot-section" aria-labelledby="alternative-heading">
+ <div class="plot-heading">
+  <div><h2 id="alternative-heading"></h2><p class="plot-caption" id="alternative-caption"></p></div>
+  <div class="metrics">
+   <p id="beta-metric" class="metric error"><span id="beta-label">漏判概率 β</span><strong id="beta-value"></strong></p>
+   <p id="power-metric" class="metric success"><span id="power-label">检验功效 1 − β</span><strong id="power-value"></strong></p>
+  </div>
+ </div>
+ <svg id="alternative-chart" class="chart" role="img" aria-labelledby="alternative-chart-title alternative-chart-desc"></svg>
+</section>
+<p class="chart-note">横轴：样本均值 <math aria-label="样本均值"><mover accent="true"><mi>X</mi><mo>¯</mo></mover></math>（MPa）。上下两图的横、纵刻度相同，每条密度曲线下的总面积均为 1。</p>
+<p class="conclusion" id="conclusion" role="status" aria-live="polite"></p>
+
+<details>
+ <summary>公式与图形的对应</summary>
+ <p>由于总体服从正态分布，任意样本量下的样本均值都服从正态分布：</p>
+ <p class="formula"><math display="block"><mrow><mover accent="true"><mi>X</mi><mo>¯</mo></mover><mo>∼</mo><mtext>N</mtext><mo>(</mo><mi>μ</mi><mo>,</mo><mfrac><msup><mn>200</mn><mn>2</mn></msup><mi>n</mi></mfrac><mo>)</mo><mo>,</mo><mspace width="1em"/><mtext>标准误差</mtext><mo>=</mo><mfrac><mn>200</mn><msqrt><mi>n</mi></msqrt></mfrac><mo>.</mo></mrow></math></p>
+ <p>双侧拒绝域为
+ <math><mrow><mrow><mo fence="true" form="prefix">|</mo><mrow><mover accent="true"><mi>X</mi><mo>¯</mo></mover><mo>−</mo><mn>650</mn></mrow><mo fence="true" form="postfix">|</mo></mrow><mo>&gt;</mo><msub><mi>u</mi><mrow><mi>α</mi><mo>/</mo><mn>2</mn></mrow></msub><mfrac><mn>200</mn><msqrt><mi>n</mi></msqrt></mfrac></mrow></math>。
+ 其中 u<sub>α/2</sub> 是标准正态分布的上侧分位数。当前 <span id="critical-value"></span>。</p>
+ <p>上图在 μ = 650 时计算拒绝域内的概率，得到 α。下图在所选的 μ ≠ 650 时计算不拒绝域内的概率，得到 β(μ)；其余概率 1 − β(μ) 就是检验功效。</p>
+ <p class="source">初始设置对应吴赣昌《概率论与数理统计》理工类第六版，第 313–314 页合金拉伸强度例题。曲线与阴影按正态模型计算。</p>
+</details>
+<noscript>请在浏览器中启用 JavaScript 以使用此演示。</noscript>
+</main>
+<script>
+'use strict';
+const MU0 = 650, SIGMA = 200;
+const CRITICAL = Object.freeze({
+  '0.01': 2.5758293035489004,
+  '0.05': 1.959963984540054,
+  '0.1': 1.6448536269514722
+});
+// Expand the integral of exp(-x²/2) as exp(-x²/2) times a positive-term
+// series. This avoids alternating large terms in the central normal CDF.
+function normalCDF(x) {
+  if (x === Infinity) return 1;
+  if (x === -Infinity) return 0;
+  if (!Number.isFinite(x)) return NaN;
+  const a = Math.abs(x);
+  if (a >= 9) return x > 0 ? 1 : 0;
+  let term = a, sum = a;
+  for (let k = 1; k < 300; k++) {
+    term *= a * a / (2 * k + 1);
+    sum += term;
+    if (term <= sum * Number.EPSILON) break;
+  }
+  const halfArea = Math.min(.5, sum * Math.exp(-a * a / 2) / Math.sqrt(2 * Math.PI));
+  return x < 0 ? .5 - halfArea : .5 + halfArea;
+}
+function density(x, mean, se) {
+  const z = (x - mean) / se;
+  return Math.exp(-z * z / 2) / (se * Math.sqrt(2 * Math.PI));
+}
+function calcModel(n, mu, alpha) {
+  if (!Number.isInteger(n) || n < 1 || n > 2000) throw new RangeError('样本量应为 1–2000 的整数。');
+  if (!Number.isFinite(mu) || mu < 400 || mu > 900) throw new RangeError('真实均值应在 400–900 之间。');
+  const critical = CRITICAL[String(alpha)];
+  if (!critical) throw new RangeError('请选择给定的显著性水平。');
+  const se = SIGMA / Math.sqrt(n), half = critical * se;
+  const lower = MU0 - half, upper = MU0 + half;
+  const nonRejection = Math.max(0, Math.min(1,
+    normalCDF((upper - mu) / se) - normalCDF((lower - mu) / se)));
+  const isNull = mu === MU0;
+  return {n, mu, alpha, critical, se, lower, upper, isNull, nonRejection,
+    beta: isNull ? null : nonRejection, power: isNull ? null : 1 - nonRejection};
+}
+function chartDomain(model) {
+  const pad = 4.3 * model.se;
+  return {min: Math.min(450, MU0 - pad, model.mu - pad),
+    max: Math.max(850, MU0 + pad, model.mu + pad),
+    ymax: 1.18 / (model.se * Math.sqrt(2 * Math.PI))};
+}
+// BEGIN UI
+const $ = id => document.getElementById(id);
+const state = {n: 70, mu: 670, alpha: .05};
+const invalid = new Map();
+const fmt = (x, digits = 2) => x.toLocaleString('zh-CN', {maximumFractionDigits: digits});
+function percent(p) {
+  if (p < .00005) return '< 0.01%';
+  if (p > .99995) return '> 99.99%';
+  return (100 * p).toFixed(2) + '%';
+}
+function niceStep(span) {
+  const raw = span / 6, base = 10 ** Math.floor(Math.log10(raw)), v = raw / base;
+  return (v <= 1 ? 1 : v <= 2 ? 2 : v <= 2.5 ? 2.5 : v <= 5 ? 5 : 10) * base;
+}
+function chart(svg, model, isNull, domain) {
+  const width = Math.max(280, svg.clientWidth), height = svg.clientHeight || 198;
+  const left = 18, right = 18, top = 24, base = height - 57;
+  const x = v => left + (v - domain.min) / (domain.max - domain.min) * (width - left - right);
+  const y = v => base - v / domain.ymax * (base - top);
+  const mean = isNull ? MU0 : model.mu;
+  const curve = (a, b, filled) => {
+    if (b <= a) return '';
+    // Sample around the mean as well as on the common domain so that even
+    // narrow densities at large n retain their peak and shaded boundaries.
+    const points = [];
+    for (let i = 0; i <= 260; i++) points.push(a + (b - a) * i / 260);
+    for (let z = -6; z <= 6; z += .04) {
+      const value = mean + z * model.se;
+      if (value > a && value < b) points.push(value);
+    }
+    points.sort((u, v) => u - v);
+    const commands = points.map((v, i) => (i ? 'L' : 'M') + x(v).toFixed(3) + ',' + y(density(v, mean, model.se)).toFixed(3)).join(' ');
+    return filled ? 'M' + x(a).toFixed(3) + ',' + base + ' ' + commands.replace(/^M/, 'L') + ' L' + x(b).toFixed(3) + ',' + base + ' Z' : commands;
+  };
+  const clipped = v => Math.max(domain.min, Math.min(domain.max, v));
+  const shade = (a, b, fill, opacity) => '<path d="' + curve(clipped(a), clipped(b), true) + '" fill="' + fill + '" fill-opacity="' + opacity + '"/>';
+  const prefix = isNull ? 'null-chart' : 'alternative-chart';
+  const desc = isNull
+    ? '真实均值为650时样本均值的密度。两端拒绝域内的红色阴影总概率为' + percent(model.alpha) + '。'
+    : model.isNull
+      ? '真实均值也为650，两图分布相同。中间阴影为正确不拒绝原假设的概率，不称为第二类错误。'
+      : '真实均值为' + fmt(model.mu) + '时样本均值的密度。不拒绝域内的红色阴影为漏判概率' + percent(model.beta) + '，检验功效为' + percent(model.power) + '。';
+  let out = '<title id="' + prefix + '-title">' + (isNull ? '原假设成立时的抽样分布' : '所选真实均值下的抽样分布') + '</title><desc id="' + prefix + '-desc">' + desc + '</desc>';
+  out += '<text x="' + left + '" y="15">概率密度</text>';
+  if (isNull) {
+    out += shade(domain.min, model.lower, '#a32e2e', .24) + shade(model.upper, domain.max, '#a32e2e', .24);
+  } else {
+    out += shade(model.lower, model.upper, model.isNull ? '#14406b' : '#a32e2e', .20);
+  }
+  out += '<line class="center" x1="' + x(mean) + '" x2="' + x(mean) + '" y1="' + base + '" y2="' + y(density(mean, mean, model.se)) + '"/>';
+  for (const bound of [model.lower, model.upper]) {
+    out += '<line class="boundary" x1="' + x(bound) + '" x2="' + x(bound) + '" y1="' + (top - 3) + '" y2="' + base + '"/>';
+  }
+  out += '<path class="curve' + (isNull ? '' : ' alternative') + '" d="' + curve(domain.min, domain.max, false) + '"/>';
+  out += '<line class="axis" x1="' + left + '" x2="' + (width - right) + '" y1="' + base + '" y2="' + base + '"/>';
+  const step = niceStep(domain.max - domain.min);
+  for (let v = Math.ceil(domain.min / step) * step; v <= domain.max + step * 1e-8; v += step) {
+    out += '<line class="axis" x1="' + x(v) + '" x2="' + x(v) + '" y1="' + base + '" y2="' + (base + 5) + '"/><text text-anchor="middle" x="' + x(v) + '" y="' + (base + 21) + '">' + fmt(v, 0) + '</text>';
+  }
+  // The short strip shows decisions; probability is the area under the curve,
+  // not the width of this strip.
+  const band = base + 29, bandHeight = 3, lowerX = x(model.lower), upperX = x(model.upper);
+  out += '<rect x="' + left + '" y="' + band + '" width="' + (lowerX - left) + '" height="' + bandHeight + '" fill="#a32e2e" opacity=".55"/>';
+  out += '<rect x="' + lowerX + '" y="' + band + '" width="' + (upperX - lowerX) + '" height="' + bandHeight + '" fill="#aab7c3"/>';
+  out += '<rect x="' + upperX + '" y="' + band + '" width="' + (width - right - upperX) + '" height="' + bandHeight + '" fill="#a32e2e" opacity=".55"/>';
+  if (lowerX - left > 75) out += '<text class="decision reject-label" text-anchor="middle" x="' + (left + lowerX) / 2 + '" y="' + (height - 5) + '">拒绝 H₀</text>';
+  out += '<text class="decision" text-anchor="middle" x="' + (lowerX + upperX) / 2 + '" y="' + (height - 5) + '">不拒绝 H₀</text>';
+  if (width - right - upperX > 75) out += '<text class="decision reject-label" text-anchor="middle" x="' + (width - right + upperX) / 2 + '" y="' + (height - 5) + '">拒绝 H₀</text>';
+  svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+  svg.innerHTML = out;
+}
+function render() {
+  const m = calcModel(state.n, state.mu, state.alpha), domain = chartDomain(m);
+  const meanMark = '<math aria-label="样本均值"><mover accent="true"><mi>X</mi><mo>¯</mo></mover></math>';
+  $('rule').innerHTML = meanMark + ' &lt; ' + fmt(m.lower) + ' 或 ' + meanMark + ' &gt; ' + fmt(m.upper) + ' 时，拒绝 H₀';
+  $('alpha-value').textContent = percent(m.alpha);
+  $('alternative-heading').textContent = '所选真实均值 μ = ' + fmt(m.mu) + (m.isNull ? '（H₀ 成立）' : '（H₀ 不成立）');
+  $('alternative-caption').textContent = m.isNull
+    ? '此时与上图相同。中间蓝色阴影：正确地不拒绝原假设。'
+    : '中间红色阴影：真实均值已偏离 650，却仍落在不拒绝域。';
+  $('beta-label').textContent = m.isNull ? '正确不拒绝' : '漏判概率 β';
+  $('power-label').textContent = m.isNull ? '拒绝概率 α' : '检验功效 1 − β';
+  $('beta-metric').className = 'metric ' + (m.isNull ? 'neutral' : 'error');
+  $('power-metric').className = 'metric ' + (m.isNull ? 'error' : 'success');
+  $('beta-value').textContent = percent(m.nonRejection);
+  $('power-value').textContent = percent(1 - m.nonRejection);
+  $('critical-value').textContent = 'u' + (m.alpha === .01 ? '₀.₀₀₅' : m.alpha === .05 ? '₀.₀₂₅' : '₀.₀₅') + ' ≈ ' + m.critical.toFixed(4);
+  $('conclusion').innerHTML = m.isNull
+    ? '当前 μ = 650，原假设成立；<strong>第二类错误只在原假设不成立时讨论。</strong> 调整下图的真实均值，观察漏判概率。'
+    : '真实均值为 <strong>' + fmt(m.mu) + '</strong> 时，反复使用这条规则，有 <strong>' + percent(m.beta) + '</strong> 的概率不拒绝 μ = 650；发现这一偏离的概率为 <strong>' + percent(m.power) + '</strong>。';
+  chart($('null-chart'), m, true, domain);
+  chart($('alternative-chart'), m, false, domain);
+}
+function notice() {
+  $('notice').textContent = invalid.size ? [...invalid.values()].join(' ') + ' 图形保留上一次有效设置。' : '';
+}
+function changeNumber(key, rangeChanged) {
+  const input = $(key), range = $(key + '-range');
+  if (rangeChanged) input.value = range.value;
+  const value = input.valueAsNumber;
+  const valid = Number.isFinite(value) && (key === 'n'
+    ? Number.isInteger(value) && value >= 1 && value <= 2000
+    : value >= 400 && value <= 900);
+  if (!valid) {
+    invalid.set(key, key === 'n' ? '样本量应为 1–2000 的整数。' : '真实均值应在 400–900 之间。');
+    input.setAttribute('aria-invalid', 'true');
+    notice();
+    return;
+  }
+  invalid.delete(key);
+  input.removeAttribute('aria-invalid');
+  range.value = String(value);
+  state[key] = value;
+  notice();
+  render();
+}
+for (const key of ['mu', 'n']) {
+  $(key).addEventListener('input', () => changeNumber(key, false));
+  $(key + '-range').addEventListener('input', () => changeNumber(key, true));
+}
+$('alpha').addEventListener('change', () => {
+  state.alpha = Number($('alpha').value);
+  render();
+});
+$('controls').addEventListener('submit', event => event.preventDefault());
+$('reset').addEventListener('click', () => {
+  Object.assign(state, {n: 70, mu: 670, alpha: .05});
+  invalid.clear();
+  for (const key of ['mu', 'n']) {
+    $(key).value = String(state[key]);
+    $(key + '-range').value = String(state[key]);
+    $(key).removeAttribute('aria-invalid');
+  }
+  $('alpha').value = '0.05';
+  notice();
+  render();
+});
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(render).observe($('null-chart'));
+else window.addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
