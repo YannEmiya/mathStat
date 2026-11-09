@@ -13,6 +13,7 @@
 - `estimators.html`：[估计量的比较](https://yannemiya.github.io/mathStat/estimators.html)。
 - `ci.html`：[置信区间与重复抽样](https://yannemiya.github.io/mathStat/ci.html)。
 - `power.html`：[两类错误与检验功效](https://yannemiya.github.io/mathStat/power.html)。
+- `tea.html`：[女士品茶：从猜测到假设检验](https://yannemiya.github.io/mathStat/tea.html)。
 
 ## 经验分布函数与总体分布函数
 
@@ -65,6 +66,17 @@
 - 默认 n=70、μ=670、α=0.05，漏判概率约 86.68%，功效约 13.32%。μ=650 时改为显示正确不拒绝与误拒概率。
 - 公式默认收起，页面可离线打开。“返回索引”可回到演示列表。
 
+## 女士品茶：从猜测到假设检验
+
+- 每轮做 n 次独立判断，答对概率同为 p，检验 `H₀: p≤0.5` 与 `H₁: p>0.5`。
+- “先看判断规则”显示随机猜测下答对次数的精确二项分布，调整拒绝门槛，比较实际误拒概率。
+- “再看两类错误”用相同的门槛和刻度比较随机猜测与具有辨别能力的情形，同时显示第二类错误概率与检验功效。
+- n 可调为 1–1000；勾选“随 n 和 α 自动调整门槛”时，自动选取误拒概率不超过 α 的最低整数门槛。
+  手动改变门槛会关闭自动模式，重新勾选即可恢复联动。α 可选1%、5%、10%。
+- 可设置一次试验的答对次数，也可重复模拟10–20000轮，比较模拟比例与理论概率。
+- 大 n 时放大主要概率范围；所有错误概率按完整分布计算。网页可离线打开。
+- 链接附加 `#rule` 或 `#errors` 可直接打开判断规则或两类错误界面。
+
 ## GitHub Pages
 
 仓库中只有可公开的静态网页及说明，不需要构建步骤。GitHub Pages 已启用，
@@ -78,7 +90,8 @@
 `likelihood.html` 对应 `../interact/极大似然估计.html`，
 `estimators.html` 对应 `../interact/估计量的比较.html`，
 `ci.html` 对应 `../interact/置信区间.html`，
-`power.html` 对应 `../interact/两类错误与检验功效.html`。网页版另有返回索引的导航；
+`power.html` 对应 `../interact/两类错误与检验功效.html`，
+`tea.html` 对应 `../interact/女士品茶.html`。网页版另有返回索引的导航；
 修改演示后，应同步更新对应的本地版和网页版正文与脚本，再检查并发布。
 演示页不标注课件章节号。新增演示时在 `index.html` 的列表中添加链接。
 不要把教材、点名册或其他备课资料加入此仓库。
