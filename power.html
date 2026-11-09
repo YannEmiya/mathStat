@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="调节真实均值、样本量与显著性水平，观察正态均值检验的两类错误概率和检验功效。">
-<title>两类错误与检验功效</title>
+<meta name="description" content="从洗衣粉包装例子理解拒绝域，再调节总体均值、样本量与显著性水平，观察两类错误与检验功效。">
+<title>洗衣粉包装：假设检验与两类错误</title>
 <style>
 :root{--blue:#14406b;--red:#a32e2e;--green:#28766b;--ink:#223346;--muted:#596a78;--line:#dbe2e8;--pale:#f4f7fa}
 *{box-sizing:border-box}
@@ -17,6 +17,11 @@ math{font-family:"STIX Two Math","Cambria Math",serif;font-size:1.12em}
 .model{font-size:15px;margin-bottom:17px}
 .model strong{color:var(--blue);font-weight:600}
 .controls{display:grid;grid-template-columns:1fr 1fr auto;gap:25px;padding:14px 18px;background:var(--pale);border-radius:5px;align-items:start}
+.controls.rule-mode{grid-template-columns:1fr auto}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin:0 0 17px}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;padding:8px 0;color:var(--muted)}
+.tabs button[aria-selected=true]{border-bottom-color:var(--blue);color:var(--blue);font-weight:600}
+[hidden]{display:none!important}
 .field{min-width:0}
 .field-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 label{font-size:15px;font-weight:600}
@@ -53,6 +58,8 @@ h2{font-size:19px;color:var(--blue);font-weight:600;line-height:1.4;margin:0}
 .chart .axis{stroke:#8091a1;stroke-width:1}
 .chart .boundary{stroke:#718293;stroke-width:1.3;stroke-dasharray:4 4}
 .chart .center{stroke:#a2afba;stroke-width:1;stroke-dasharray:2 5}
+.chart .observed{stroke:var(--ink);stroke-width:1.6;stroke-dasharray:3 3}
+.rule-mode-chart{height:255px}
 .chart .decision{font-size:12px}
 .chart .reject-label{fill:var(--red)}
 .chart-note{font-size:13px;color:var(--muted);margin:4px 0 12px}
@@ -80,7 +87,7 @@ noscript{display:block;color:var(--red);margin:15px 0}
  h1{font-size:25px}
  .lead{font-size:15px}
  .model{font-size:14px}
- .controls{grid-template-columns:1fr;gap:17px;padding:13px 14px}
+ .controls,.controls.rule-mode{grid-template-columns:1fr;gap:17px;padding:13px 14px}
  .alpha-field{grid-column:auto;gap:10px;flex-wrap:wrap}
  .alpha-field .field-head{gap:12px}
  .alpha-field button{font-size:13px;padding:5px 8px}
@@ -96,36 +103,41 @@ noscript{display:block;color:var(--red);margin:15px 0}
 <body>
 <main>
 <nav class="site-nav" aria-label="页面导航"><a href="./index.html">← 返回索引</a></nav>
-<h1>两类错误与检验功效</h1>
-<p class="lead">每次抽取 n 个观测值，计算一个样本均值。下面两图展示这个样本均值在反复抽样中的分布。</p>
-<p class="model">合金拉伸强度 X ∼ N(μ, 200²)，单位为 MPa，总体标准差已知。检验 <strong>H₀：μ = 650，H₁：μ ≠ 650</strong>。</p>
+<h1>洗衣粉包装：假设检验与两类错误</h1>
+<p class="lead">每次随机抽取 n 袋洗衣粉，计算样本平均重量。机器的平均包装重量还是 500 克吗？</p>
+<p class="model">每袋重量 X ∼ N(μ, 2²)，单位为克，总体标准差已知。检验 <strong>H₀：μ = 500，H₁：μ ≠ 500</strong>。</p>
+
+<nav class="tabs" role="tablist" aria-label="演示内容">
+ <button id="tab-rule" type="button" role="tab" aria-selected="true" aria-controls="null-section">先看判断规则</button>
+ <button id="tab-errors" type="button" role="tab" aria-selected="false" aria-controls="alternative-section" tabindex="-1">再看两类错误</button>
+</nav>
 
 <form class="controls" id="controls" novalidate>
- <div class="field">
-  <div class="field-head"><label for="mu">下图的真实均值 μ</label><input id="mu" type="number" min="400" max="900" step="0.1" value="670" inputmode="decimal" aria-describedby="notice"></div>
-  <input id="mu-range" type="range" min="400" max="900" step="0.1" value="670" aria-label="调节下图的真实均值">
+ <div class="field" id="mu-field" hidden>
+  <div class="field-head"><label for="mu">下图的总体平均重量 μ（克）</label><input id="mu" type="number" min="496" max="504" step="0.01" value="502" inputmode="decimal" aria-describedby="notice"></div>
+  <input id="mu-range" type="range" min="496" max="504" step="0.01" value="502" aria-label="调节下图的总体平均重量">
  </div>
  <div class="field">
-  <div class="field-head"><label for="n">每组样本量 n</label><input id="n" type="number" min="1" max="2000" step="1" value="70" inputmode="numeric" aria-describedby="notice"></div>
-  <input id="n-range" type="range" min="1" max="2000" step="1" value="70" aria-label="调节每组样本量">
+  <div class="field-head"><label for="n">每次抽取的袋数 n</label><input id="n" type="number" min="1" max="2000" step="1" value="9" inputmode="numeric" aria-describedby="notice"></div>
+  <input id="n-range" type="range" min="1" max="2000" step="1" value="9" aria-label="调节每次抽取的袋数">
  </div>
  <div class="field alpha-field">
   <div class="field-head"><label for="alpha">显著性水平 α</label><select id="alpha"><option value="0.01">0.01</option><option value="0.05" selected>0.05</option><option value="0.1">0.10</option></select></div>
-  <button id="reset" type="button">恢复教材设置</button>
+  <button id="reset" type="button">恢复洗衣粉示例</button>
  </div>
 </form>
 <p id="notice" class="notice" role="status" aria-live="polite"></p>
-<div class="rule"><span class="rule-label">两种情形使用同一条检验规则</span><strong id="rule"></strong></div>
+<div class="rule"><span class="rule-label" id="rule-label"></span><strong id="rule"></strong></div>
 
-<section class="plot-section" aria-labelledby="null-heading">
+<section id="null-section" class="plot-section" aria-labelledby="null-heading">
  <div class="plot-heading">
-  <div><h2 id="null-heading">原假设成立：真实均值 μ = 650</h2><p class="plot-caption">两端红色阴影：原假设为真，却落入拒绝域。</p></div>
+  <div><h2 id="null-heading">原假设成立：总体平均重量为 500 克</h2><p class="plot-caption">两端红色阴影：原假设为真，样本均值却落入拒绝域。</p></div>
   <div class="metrics"><p class="metric error">误拒概率 α<strong id="alpha-value"></strong></p></div>
  </div>
  <svg id="null-chart" class="chart" role="img" aria-labelledby="null-chart-title null-chart-desc"></svg>
 </section>
 
-<section class="plot-section" aria-labelledby="alternative-heading">
+<section id="alternative-section" class="plot-section" aria-labelledby="alternative-heading" hidden>
  <div class="plot-heading">
   <div><h2 id="alternative-heading"></h2><p class="plot-caption" id="alternative-caption"></p></div>
   <div class="metrics">
@@ -135,24 +147,25 @@ noscript{display:block;color:var(--red);margin:15px 0}
  </div>
  <svg id="alternative-chart" class="chart" role="img" aria-labelledby="alternative-chart-title alternative-chart-desc"></svg>
 </section>
-<p class="chart-note">横轴：样本均值 <math aria-label="样本均值"><mover accent="true"><mi>X</mi><mo>¯</mo></mover></math>（MPa）。上下两图的横、纵刻度相同，每条密度曲线下的总面积均为 1。</p>
+<p class="chart-note" id="chart-note"></p>
 <p class="conclusion" id="conclusion" role="status" aria-live="polite"></p>
 
 <details>
  <summary>公式与图形的对应</summary>
  <p>由于总体服从正态分布，任意样本量下的样本均值都服从正态分布：</p>
- <p class="formula"><math display="block"><mrow><mover accent="true"><mi>X</mi><mo>¯</mo></mover><mo>∼</mo><mtext>N</mtext><mo>(</mo><mi>μ</mi><mo>,</mo><mfrac><msup><mn>200</mn><mn>2</mn></msup><mi>n</mi></mfrac><mo>)</mo><mo>,</mo><mspace width="1em"/><mtext>标准误差</mtext><mo>=</mo><mfrac><mn>200</mn><msqrt><mi>n</mi></msqrt></mfrac><mo>.</mo></mrow></math></p>
+ <p class="formula"><math display="block"><mrow><mover accent="true"><mi>X</mi><mo>¯</mo></mover><mo>∼</mo><mtext>N</mtext><mo>(</mo><mi>μ</mi><mo>,</mo><mfrac><msup><mn>2</mn><mn>2</mn></msup><mi>n</mi></mfrac><mo>)</mo><mo>,</mo><mspace width="1em"/><mtext>标准误差</mtext><mo>=</mo><mfrac><mn>2</mn><msqrt><mi>n</mi></msqrt></mfrac><mo>.</mo></mrow></math></p>
  <p>双侧拒绝域为
- <math><mrow><mrow><mo fence="true" form="prefix">|</mo><mrow><mover accent="true"><mi>X</mi><mo>¯</mo></mover><mo>−</mo><mn>650</mn></mrow><mo fence="true" form="postfix">|</mo></mrow><mo>&gt;</mo><msub><mi>u</mi><mrow><mi>α</mi><mo>/</mo><mn>2</mn></mrow></msub><mfrac><mn>200</mn><msqrt><mi>n</mi></msqrt></mfrac></mrow></math>。
+ <math><mrow><mrow><mo fence="true" form="prefix">|</mo><mrow><mover accent="true"><mi>X</mi><mo>¯</mo></mover><mo>−</mo><mn>500</mn></mrow><mo fence="true" form="postfix">|</mo></mrow><mo>&gt;</mo><msub><mi>u</mi><mrow><mi>α</mi><mo>/</mo><mn>2</mn></mrow></msub><mfrac><mn>2</mn><msqrt><mi>n</mi></msqrt></mfrac></mrow></math>。
  其中 u<sub>α/2</sub> 是标准正态分布的上侧分位数。当前 <span id="critical-value"></span>。</p>
- <p>上图在 μ = 650 时计算拒绝域内的概率，得到 α。下图在所选的 μ ≠ 650 时计算不拒绝域内的概率，得到 β(μ)；其余概率 1 − β(μ) 就是检验功效。</p>
- <p class="source">初始设置对应吴赣昌《概率论与数理统计》理工类第六版，第 313–314 页合金拉伸强度例题。曲线与阴影按正态模型计算。</p>
+ <p>在 μ = 500 时计算拒绝域内的概率，得到 α。“再看两类错误”在所选的 μ ≠ 500 时计算不拒绝域内的概率，得到 β(μ)；其余概率 1 − β(μ) 就是检验功效。</p>
+ <p>课件中的 9 袋重量为 505、499、502、506、498、498、497、510、503 克，样本均值为 502 克。下图设置的 μ 是另行假设的总体均值，不能由本次样本均值直接确定。</p>
+ <p class="source">案例来源：吴赣昌《概率论与数理统计》理工类第六版，第 312 页洗衣粉包装例题。曲线与阴影按正态模型计算。</p>
 </details>
 <noscript>请在浏览器中启用 JavaScript 以使用此演示。</noscript>
 </main>
 <script>
 'use strict';
-const MU0 = 650, SIGMA = 200;
+const MU0 = 500, SIGMA = 2, OBSERVED = 502;
 const CRITICAL = Object.freeze({
   '0.01': 2.5758293035489004,
   '0.05': 1.959963984540054,
@@ -181,7 +194,7 @@ function density(x, mean, se) {
 }
 function calcModel(n, mu, alpha) {
   if (!Number.isInteger(n) || n < 1 || n > 2000) throw new RangeError('样本量应为 1–2000 的整数。');
-  if (!Number.isFinite(mu) || mu < 400 || mu > 900) throw new RangeError('真实均值应在 400–900 之间。');
+  if (!Number.isFinite(mu) || mu < 496 || mu > 504) throw new RangeError('总体平均重量应在 496–504 克之间。');
   const critical = CRITICAL[String(alpha)];
   if (!critical) throw new RangeError('请选择给定的显著性水平。');
   const se = SIGMA / Math.sqrt(n), half = critical * se;
@@ -192,15 +205,15 @@ function calcModel(n, mu, alpha) {
   return {n, mu, alpha, critical, se, lower, upper, isNull, nonRejection,
     beta: isNull ? null : nonRejection, power: isNull ? null : 1 - nonRejection};
 }
-function chartDomain(model) {
+function chartDomain(model, includeAlternative=true) {
   const pad = 4.3 * model.se;
-  return {min: Math.min(450, MU0 - pad, model.mu - pad),
-    max: Math.max(850, MU0 + pad, model.mu + pad),
+  return {min: Math.min(496, MU0 - pad, includeAlternative ? model.mu - pad : MU0),
+    max: Math.max(504, MU0 + pad, includeAlternative ? model.mu + pad : MU0),
     ymax: 1.18 / (model.se * Math.sqrt(2 * Math.PI))};
 }
 // BEGIN UI
 const $ = id => document.getElementById(id);
-const state = {n: 70, mu: 670, alpha: .05};
+const state = {n: 9, mu: 502, alpha: .05, view:'rule'};
 const invalid = new Map();
 const fmt = (x, digits = 2) => x.toLocaleString('zh-CN', {maximumFractionDigits: digits});
 function percent(p) {
@@ -236,9 +249,9 @@ function chart(svg, model, isNull, domain) {
   const shade = (a, b, fill, opacity) => '<path d="' + curve(clipped(a), clipped(b), true) + '" fill="' + fill + '" fill-opacity="' + opacity + '"/>';
   const prefix = isNull ? 'null-chart' : 'alternative-chart';
   const desc = isNull
-    ? '真实均值为650时样本均值的密度。两端拒绝域内的红色阴影总概率为' + percent(model.alpha) + '。'
+    ? '总体平均重量为500克时样本均值的密度。两端拒绝域内的红色阴影总概率为' + percent(model.alpha) + '。'
     : model.isNull
-      ? '真实均值也为650，两图分布相同。中间阴影为正确不拒绝原假设的概率，不称为第二类错误。'
+      ? '总体平均重量也为500克，两图分布相同。中间阴影为正确不拒绝原假设的概率，不称为第二类错误。'
       : '真实均值为' + fmt(model.mu) + '时样本均值的密度。不拒绝域内的红色阴影为漏判概率' + percent(model.beta) + '，检验功效为' + percent(model.power) + '。';
   let out = '<title id="' + prefix + '-title">' + (isNull ? '原假设成立时的抽样分布' : '所选真实均值下的抽样分布') + '</title><desc id="' + prefix + '-desc">' + desc + '</desc>';
   out += '<text x="' + left + '" y="15">概率密度</text>';
@@ -252,6 +265,10 @@ function chart(svg, model, isNull, domain) {
     out += '<line class="boundary" x1="' + x(bound) + '" x2="' + x(bound) + '" y1="' + (top - 3) + '" y2="' + base + '"/>';
   }
   out += '<path class="curve' + (isNull ? '' : ' alternative') + '" d="' + curve(domain.min, domain.max, false) + '"/>';
+  if (isNull && state.view==='rule') {
+    const xx=x(OBSERVED), anchor=xx>width*.65?'end':'start', dx=anchor==='end'?-5:5;
+    out+='<line class="observed" x1="'+xx+'" x2="'+xx+'" y1="'+top+'" y2="'+base+'"/><text x="'+(xx+dx)+'" y="15" text-anchor="'+anchor+'">样本均值 502 克</text>';
+  }
   out += '<line class="axis" x1="' + left + '" x2="' + (width - right) + '" y1="' + base + '" y2="' + base + '"/>';
   const step = niceStep(domain.max - domain.min);
   for (let v = Math.ceil(domain.min / step) * step; v <= domain.max + step * 1e-8; v += step) {
@@ -270,14 +287,19 @@ function chart(svg, model, isNull, domain) {
   svg.innerHTML = out;
 }
 function render() {
-  const m = calcModel(state.n, state.mu, state.alpha), domain = chartDomain(m);
+  const errors=state.view==='errors', m=calcModel(state.n,state.mu,state.alpha), domain=chartDomain(m,errors);
+  $('mu-field').hidden=!errors;
+  $('alternative-section').hidden=!errors;
+  $('controls').classList.toggle('rule-mode',!errors);
+  $('null-chart').classList.toggle('rule-mode-chart',!errors);
   const meanMark = '<math aria-label="样本均值"><mover accent="true"><mi>X</mi><mo>¯</mo></mover></math>';
-  $('rule').innerHTML = meanMark + ' &lt; ' + fmt(m.lower) + ' 或 ' + meanMark + ' &gt; ' + fmt(m.upper) + ' 时，拒绝 H₀';
+  $('rule-label').textContent=errors?'两种情形使用同一条检验规则':'按 H₀ 成立时的分布确定规则';
+  $('rule').innerHTML = meanMark + ' &lt; ' + fmt(m.lower,4) + ' 或 ' + meanMark + ' &gt; ' + fmt(m.upper,4) + ' 时，拒绝 H₀';
   $('alpha-value').textContent = percent(m.alpha);
-  $('alternative-heading').textContent = '所选真实均值 μ = ' + fmt(m.mu) + (m.isNull ? '（H₀ 成立）' : '（H₀ 不成立）');
+  $('alternative-heading').textContent = '总体平均重量 μ = ' + fmt(m.mu) + ' 克'+(m.isNull ? '（H₀ 成立）' : '（H₀ 不成立）');
   $('alternative-caption').textContent = m.isNull
     ? '此时与上图相同。中间蓝色阴影：正确地不拒绝原假设。'
-    : '中间红色阴影：真实均值已偏离 650，却仍落在不拒绝域。';
+    : '中间红色阴影：总体平均重量不等于 500 克，样本均值却仍落在不拒绝域。';
   $('beta-label').textContent = m.isNull ? '正确不拒绝' : '漏判概率 β';
   $('power-label').textContent = m.isNull ? '拒绝概率 α' : '检验功效 1 − β';
   $('beta-metric').className = 'metric ' + (m.isNull ? 'neutral' : 'error');
@@ -285,11 +307,15 @@ function render() {
   $('beta-value').textContent = percent(m.nonRejection);
   $('power-value').textContent = percent(1 - m.nonRejection);
   $('critical-value').textContent = 'u' + (m.alpha === .01 ? '₀.₀₀₅' : m.alpha === .05 ? '₀.₀₂₅' : '₀.₀₅') + ' ≈ ' + m.critical.toFixed(4);
-  $('conclusion').innerHTML = m.isNull
-    ? '当前 μ = 650，原假设成立；<strong>第二类错误只在原假设不成立时讨论。</strong> 调整下图的真实均值，观察漏判概率。'
-    : '真实均值为 <strong>' + fmt(m.mu) + '</strong> 时，反复使用这条规则，有 <strong>' + percent(m.beta) + '</strong> 的概率不拒绝 μ = 650；发现这一偏离的概率为 <strong>' + percent(m.power) + '</strong>。';
+  const rejected=OBSERVED<m.lower||OBSERVED>m.upper;
+  $('chart-note').textContent='横轴：样本平均重量（克）。'+(errors?'两图的横纵刻度相同，每条密度曲线下的总面积均为 1。':'黑色虚线标出样本均值 502 克；曲线是在 H₀ 成立时的样本均值分布。');
+  $('conclusion').innerHTML = !errors
+    ? (m.n===9?'课件中 9 袋样本的平均重量为':'假设本次抽样的平均重量仍为')+' <strong>502 克</strong>，'+(rejected?'落入拒绝域，因此<strong>拒绝 H₀</strong>。':'未落入拒绝域，因此<strong>不拒绝 H₀</strong>。')
+    : m.isNull
+      ? '当前总体平均重量为 500 克，原假设成立；<strong>第二类错误只在原假设不成立时讨论。</strong>'
+      : '若总体平均重量实际为 <strong>' + fmt(m.mu) + ' 克</strong>，反复使用这条规则，有 <strong>' + percent(m.beta) + '</strong> 的概率不拒绝 H₀；正确拒绝 H₀ 的概率为 <strong>' + percent(m.power) + '</strong>。';
   chart($('null-chart'), m, true, domain);
-  chart($('alternative-chart'), m, false, domain);
+  if(errors)chart($('alternative-chart'), m, false, domain);
 }
 function notice() {
   $('notice').textContent = invalid.size ? [...invalid.values()].join(' ') + ' 图形保留上一次有效设置。' : '';
@@ -300,9 +326,9 @@ function changeNumber(key, rangeChanged) {
   const value = input.valueAsNumber;
   const valid = Number.isFinite(value) && (key === 'n'
     ? Number.isInteger(value) && value >= 1 && value <= 2000
-    : value >= 400 && value <= 900);
+    : value >= 496 && value <= 504);
   if (!valid) {
-    invalid.set(key, key === 'n' ? '样本量应为 1–2000 的整数。' : '真实均值应在 400–900 之间。');
+    invalid.set(key, key === 'n' ? '样本量应为 1–2000 的整数。' : '总体平均重量应在 496–504 克之间。');
     input.setAttribute('aria-invalid', 'true');
     notice();
     return;
@@ -324,7 +350,7 @@ $('alpha').addEventListener('change', () => {
 });
 $('controls').addEventListener('submit', event => event.preventDefault());
 $('reset').addEventListener('click', () => {
-  Object.assign(state, {n: 70, mu: 670, alpha: .05});
+  Object.assign(state, {n: 9, mu: 502, alpha: .05});
   invalid.clear();
   for (const key of ['mu', 'n']) {
     $(key).value = String(state[key]);
@@ -337,7 +363,26 @@ $('reset').addEventListener('click', () => {
 });
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(render).observe($('null-chart'));
 else window.addEventListener('resize', render);
-render();
+function setView(view,updateHash=true){
+  state.view=view;
+  if(updateHash&&location.hash!=='#'+view)history.replaceState(null,'','#'+view);
+  for(const name of ['rule','errors']){
+    const selected=name===view;
+    $('tab-'+name).setAttribute('aria-selected',String(selected));$('tab-'+name).tabIndex=selected?0:-1;
+  }
+  render();
+}
+for(const name of ['rule','errors']){
+  $('tab-'+name).addEventListener('click',()=>setView(name));
+  $('tab-'+name).addEventListener('keydown',event=>{
+    if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){
+      event.preventDefault();const next=event.key==='Home'?'rule':event.key==='End'?'errors':name==='rule'?'errors':'rule';
+      setView(next);$('tab-'+next).focus();
+    }
+  });
+}
+window.addEventListener('hashchange',()=>setView(location.hash==='#errors'?'errors':'rule',false));
+setView(location.hash==='#errors'?'errors':'rule',false);
 </script>
 </body>
 </html>
