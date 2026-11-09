@@ -60,6 +60,11 @@ h2{font-size:19px;color:var(--blue);font-weight:600;line-height:1.4;margin:0}
 .chart .center{stroke:#a2afba;stroke-width:1;stroke-dasharray:2 5}
 .chart .observed{stroke:var(--ink);stroke-width:1.6;stroke-dasharray:3 3}
 .rule-mode-chart{height:255px}
+.tradeoff-controls{max-width:520px;margin-top:13px}
+.tradeoff-legend{display:flex;gap:8px 22px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:4px}
+.tradeoff-legend span{display:inline-flex;align-items:center;gap:7px}
+.tradeoff-legend i{width:23px;border-top:2px solid var(--blue)}
+.tradeoff-legend i.reference{border-top:2px dashed #8a969f}
 .chart .decision{font-size:12px}
 .chart .reject-label{fill:var(--red)}
 .chart-note{font-size:13px;color:var(--muted);margin:4px 0 12px}
@@ -150,6 +155,18 @@ noscript{display:block;color:var(--red);margin:15px 0}
 <p class="chart-note" id="chart-note"></p>
 <p class="conclusion" id="conclusion" role="status" aria-live="polite"></p>
 
+<section id="tradeoff-section" class="plot-section" aria-labelledby="tradeoff-heading" hidden>
+ <div class="plot-heading"><div><h2 id="tradeoff-heading">α 与 β：降低一种错误，另一种会怎样？</h2><p class="plot-caption" id="tradeoff-caption"></p></div></div>
+ <div class="field tradeoff-controls">
+  <div class="field-head"><label for="tradeoff-n">调整样本量 n</label><input id="tradeoff-n" type="number" min="1" max="2000" step="1" value="9" inputmode="numeric" aria-describedby="notice"></div>
+  <input id="tradeoff-n-range" type="range" min="1" max="2000" step="1" value="9" aria-label="调整取舍曲线的样本量">
+  <label class="alpha-field" for="tradeoff-alpha" style="margin-top:12px">显著性水平 α <select id="tradeoff-alpha"><option value="0.01">0.01</option><option value="0.05" selected>0.05</option><option value="0.1">0.10</option></select></label>
+ </div>
+ <svg id="tradeoff-chart" class="chart" role="img" aria-labelledby="tradeoff-chart-title tradeoff-chart-desc"></svg>
+ <div id="tradeoff-legend" class="tradeoff-legend"><span><i aria-hidden="true"></i><span id="tradeoff-current"></span></span><span><i class="reference" aria-hidden="true"></i>参考：n = 9</span></div>
+ <p id="tradeoff-note" class="chart-note"></p>
+</section>
+
 <details>
  <summary>公式与图形的对应</summary>
  <p>由于总体服从正态分布，任意样本量下的样本均值都服从正态分布：</p>
@@ -191,6 +208,11 @@ function normalCDF(x) {
 function density(x, mean, se) {
   const z = (x - mean) / se;
   return Math.exp(-z * z / 2) / (se * Math.sqrt(2 * Math.PI));
+}
+function tradeoffPoint(n,mu,critical){
+  if(!Number.isInteger(n)||n<1||n>2000||!Number.isFinite(mu)||mu<496||mu>504||typeof critical!=='number'||Number.isNaN(critical)||critical<0)throw new RangeError('取舍曲线的参数无效。');
+  const shift=(mu-MU0)/(SIGMA/Math.sqrt(n));
+  return {alpha:2*normalCDF(-critical),beta:mu===MU0?null:Math.max(0,Math.min(1,normalCDF(critical-shift)-normalCDF(-critical-shift)))};
 }
 function calcModel(n, mu, alpha) {
   if (!Number.isInteger(n) || n < 1 || n > 2000) throw new RangeError('样本量应为 1–2000 的整数。');
@@ -292,6 +314,8 @@ function render() {
   $('alternative-section').hidden=!errors;
   $('controls').classList.toggle('rule-mode',!errors);
   $('null-chart').classList.toggle('rule-mode-chart',!errors);
+  $('tradeoff-section').hidden=!errors;
+  $('tradeoff-alpha').value=String(state.alpha);
   const meanMark = '<math aria-label="样本均值"><mover accent="true"><mi>X</mi><mo>¯</mo></mover></math>';
   $('rule-label').textContent=errors?'两种情形使用同一条检验规则':'按 H₀ 成立时的分布确定规则';
   $('rule').innerHTML = meanMark + ' &lt; ' + fmt(m.lower,4) + ' 或 ' + meanMark + ' &gt; ' + fmt(m.upper,4) + ' 时，拒绝 H₀';
@@ -316,27 +340,60 @@ function render() {
       : '若总体平均重量实际为 <strong>' + fmt(m.mu) + ' 克</strong>，反复使用这条规则，有 <strong>' + percent(m.beta) + '</strong> 的概率不拒绝 H₀；正确拒绝 H₀ 的概率为 <strong>' + percent(m.power) + '</strong>。';
   chart($('null-chart'), m, true, domain);
   if(errors)chart($('alternative-chart'), m, false, domain);
+  if(errors)renderTradeoff(m);
+}
+function renderTradeoff(m){
+  const svg=$('tradeoff-chart');
+  $('tradeoff-caption').textContent=m.isNull?'当前总体均值为500克，H₀成立，不定义第二类错误概率β。请先选择不同于500克的实际均值。':`固定实际总体均值为 ${fmt(m.mu)} 克。每条曲线对应一个样本量；曲线上的各点采用不同的 α。`;
+  svg.toggleAttribute('hidden',m.isNull);$('tradeoff-legend').hidden=m.isNull;
+  $('tradeoff-note').textContent=m.isNull?'':`当前 α = ${percent(m.alpha)}，β = ${percent(m.beta)}。灰色空心点对应参考设置 n=9、α=5%（实际均值相同）。先将 α 从5%降到1%，再增加 n，观察两类错误能否都低于参考设置。`;
+  $('tradeoff-current').textContent=`当前：n = ${m.n}（实心点对应所选 α）`;
+  if(m.isNull)return;
+  const width=Math.max(280,svg.clientWidth),height=235,left=52,right=18,top=27,bottom=47,base=height-bottom;
+  const x=a=>left+a/.2*(width-left-right),y=b=>base-b*(base-top);
+  const path=n=>{
+    const start=Math.max(8,Math.abs((m.mu-MU0)/(SIGMA/Math.sqrt(n)))+8),end=1.2815515655446004;
+    let d=`M${x(0)},${y(1)}`;
+    for(let i=0;i<=1100;i++){
+      const p=tradeoffPoint(n,m.mu,start-(start-end)*i/1100);
+      d+=` L${x(p.alpha).toFixed(3)},${y(p.beta).toFixed(3)}`;
+    }
+    return d;
+  };
+  let html=`<title id="tradeoff-chart-title">不同样本量下α与β的取舍</title><desc id="tradeoff-chart-desc">实际均值固定为${m.mu}克。横轴为第一类错误概率α，显示0至20%；纵轴为第二类错误概率β。蓝线样本量${m.n}，灰色虚线样本量9。</desc>`;
+  html+='<text x="0" y="16">第二类错误概率 β</text>';
+  for(const b of [0,.25,.5,.75,1])html+=`<line class="axis" style="stroke:#e6ebef" x1="${left}" x2="${width-right}" y1="${y(b)}" y2="${y(b)}"/><text text-anchor="end" x="${left-8}" y="${y(b)+4}">${Math.round(b*100)}%</text>`;
+  for(const a of [0,.05,.1,.15,.2])html+=`<text text-anchor="middle" x="${x(a)}" y="${base+20}">${Math.round(a*100)}%</text>`;
+  html+=`<path d="${path(9)}" fill="none" stroke="#8a969f" stroke-width="2" stroke-dasharray="5 4"/><path d="${path(m.n)}" fill="none" stroke="#14406b" stroke-width="2.4"/>`;
+  const original=tradeoffPoint(9,m.mu,CRITICAL['0.05']);
+  html+=`<circle cx="${x(.05)}" cy="${y(original.beta)}" r="4.2" fill="white" stroke="#8a969f" stroke-width="2"><title>参考 n=9、α=5%，β=${percent(original.beta)}</title></circle>`;
+  html+=`<line class="boundary" x1="${x(m.alpha)}" x2="${x(m.alpha)}" y1="${y(m.beta)}" y2="${base}"/><circle cx="${x(m.alpha)}" cy="${y(m.beta)}" r="4.5" fill="#14406b"><title>当前 n=${m.n}、α=${percent(m.alpha)}，β=${percent(m.beta)}</title></circle>`;
+  html+=`<line class="axis" x1="${left}" x2="${width-right}" y1="${base}" y2="${base}"/><text text-anchor="middle" x="${(left+width-right)/2}" y="${height-3}">第一类错误概率 α</text>`;
+  svg.setAttribute('viewBox',`0 0 ${width} ${height}`);svg.style.height=height+'px';svg.innerHTML=html;
 }
 function notice() {
   $('notice').textContent = invalid.size ? [...invalid.values()].join(' ') + ' 图形保留上一次有效设置。' : '';
 }
-function changeNumber(key, rangeChanged) {
-  const input = $(key), range = $(key + '-range');
+function changeNumber(key, rangeChanged, id=key) {
+  const input = $(id), range = $(id + '-range');
   if (rangeChanged) input.value = range.value;
   const value = input.valueAsNumber;
   const valid = Number.isFinite(value) && (key === 'n'
     ? Number.isInteger(value) && value >= 1 && value <= 2000
     : value >= 496 && value <= 504);
   if (!valid) {
-    invalid.set(key, key === 'n' ? '样本量应为 1–2000 的整数。' : '总体平均重量应在 496–504 克之间。');
+    invalid.set(id, key === 'n' ? '样本量应为 1–2000 的整数。' : '总体平均重量应在 496–504 克之间。');
     input.setAttribute('aria-invalid', 'true');
     notice();
     return;
   }
-  invalid.delete(key);
+  invalid.delete(id);
   input.removeAttribute('aria-invalid');
   range.value = String(value);
   state[key] = value;
+  if(key==='n')for(const field of ['n','tradeoff-n']){
+    $(field).value=value;$(field+'-range').value=value;$(field).removeAttribute('aria-invalid');invalid.delete(field);
+  }
   notice();
   render();
 }
@@ -344,17 +401,20 @@ for (const key of ['mu', 'n']) {
   $(key).addEventListener('input', () => changeNumber(key, false));
   $(key + '-range').addEventListener('input', () => changeNumber(key, true));
 }
+$('tradeoff-n').addEventListener('input',()=>changeNumber('n',false,'tradeoff-n'));
+$('tradeoff-n-range').addEventListener('input',()=>changeNumber('n',true,'tradeoff-n'));
 $('alpha').addEventListener('change', () => {
   state.alpha = Number($('alpha').value);
   render();
 });
+$('tradeoff-alpha').addEventListener('change',()=>{state.alpha=Number($('tradeoff-alpha').value);$('alpha').value=String(state.alpha);render();});
 $('controls').addEventListener('submit', event => event.preventDefault());
 $('reset').addEventListener('click', () => {
   Object.assign(state, {n: 9, mu: 502, alpha: .05});
   invalid.clear();
-  for (const key of ['mu', 'n']) {
-    $(key).value = String(state[key]);
-    $(key + '-range').value = String(state[key]);
+  for (const key of ['mu', 'n','tradeoff-n']) {
+    $(key).value = String(state[key==='tradeoff-n'?'n':key]);
+    $(key + '-range').value = String(state[key==='tradeoff-n'?'n':key]);
     $(key).removeAttribute('aria-invalid');
   }
   $('alpha').value = '0.05';
